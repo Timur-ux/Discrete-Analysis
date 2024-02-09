@@ -155,6 +155,7 @@ AvlTree<TKey, TVal>::rebalanceAfterInsertion(std::shared_ptr<Node> node) {
         }
 
         rebalanceAfterInsertion(parent);
+        return;
     }
     else if (node->balance == impl::badRight) {
         std::shared_ptr<Node> rightChild = node->right;
