@@ -1,50 +1,35 @@
 #include <iostream>
-#include "SearchingTree/AVLTree.hpp"
 #include <cstdlib>
+#include "SearchingTree/RBTree.hpp"
 #include <vector>
-#include <fstream>
+
+template <typename T>
+void asBytes(T n) {
+    size_t size = sizeof(T);
+    int mask = 15;
+    for (int i = size - 1; i >= 0; --i) {
+        std::cout << "Byte " << i + 1 << ": " << ((n >> i * 8) & mask) << std::endl;
+    }
+}
+
+template <typename T>
+void asBits(T n) {
+    size_t size = sizeof(T);
+    int mask = 1;
+
+    for (int i = size * 8 - 1; i >= 0; --i) {
+        std::cout << ((n >> i) & mask);
+    }
+}
 
 int main() {
-    int n;
-    std::cin >> n;
+    const int kGenerateCount = 50;
+    tree::RBTree<int, int> tree;
 
-    std::ofstream log("log.txt");
-    log << "----------INSERTING----------" << std::endl;
-
-    tree::AvlTree<int, int> tree;
-    std::vector<int> keys;
-    for (int i = 1; i < n; ++i) {
-        int n = rand();
-        keys.emplace_back(n);
-
-        log << "Step: " << i << " key: " << n << std::endl;
-
-        tree.insert(n, i);
-
-        // tree.print(log);
-        if (!tree.check_tree()) {
-            std::cout << i << " <<< " << std::endl;
-            break;
-        }
-        log << "---------------" << std::endl;
+    for (int i = 1; i < kGenerateCount; ++i) {
+        tree.insert(rand(), i * i);
     }
-    log << "----------REMOVING----------" << std::endl;
-    for (int i = 1; i < n; ++i) {
-        int index = rand() % keys.size();
-        int key = keys[index];
-        keys.erase(keys.begin() + index);
-
-        log << "Removing: " << key << std::endl;
-        tree.remove(key);
-        // tree.print(log);
-        if (!tree.check_tree()) {
-            std::cout << i << " <<< " << std::endl;
-            break;
-        }
-        log << "---------------" << std::endl;
-    }
-    // tree.print(std::cout, 0);
-
-
+    tree.print();
     return 0;
 }
+
