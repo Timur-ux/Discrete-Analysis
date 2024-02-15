@@ -23,11 +23,37 @@ void asBits(T n) {
 }
 
 int main() {
-    const int kGenerateCount = 50;
+    const int kGenerateCount = 20;
+    std::vector<int> keys;
     tree::RBTree<int, int> tree;
 
-    for (int i = 1; i < kGenerateCount; ++i) {
-        tree.insert(rand(), i * i);
+    std::cout << "-----------Inserting------------" << std::endl;
+    for (int i = 0; i < kGenerateCount; ++i) {
+        int key = rand();
+        tree.insert(key, i);
+        keys.push_back(key);
+        if (!tree.validate()) {
+            std::cout << "Bad tree" << std::endl;
+            break;
+        }
+    }
+    tree.print();
+    std::cout << "-----------Deleting------------" << std::endl;
+    for (int i = 0; i < kGenerateCount / 2; ++i) {
+        int index = rand() % keys.size();
+        int key = keys[index];
+        std::cout << "The key is deleted: " << key << std::endl;
+        tree.remove(key);
+        keys.erase(std::begin(keys) + index);
+
+        if (!tree.validate()) {
+            std::cout << "Bad tree" << std::endl;
+            break;
+        }
+        tree.print();
+        std::cout << "Deleted key: " << key << std::endl;
+        std::cout << "-----------------------" << std::endl;
+
     }
     tree.print();
     return 0;

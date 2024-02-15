@@ -10,6 +10,10 @@ public:
     void remove(TKey key);
     std::optional<TVal &> find(TKey key);
     void print(std::ostream & os = std::cout);
+
+    bool validate() {
+        return rbTree_base_.validate();
+    }
 private:
     impl::RBTree_base<TKey, TVal> rbTree_base_;
 };
