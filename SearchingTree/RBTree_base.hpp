@@ -22,6 +22,14 @@ enum class Color : bool {
 template <Comparable TKey, typename TVal>
 class RBTree_base {
 public:
+    RBTree_base() {
+        nil_ = std::shared_ptr<Node>(new Node{
+            .color = Color::black
+        });
+
+        root_ = nil_;
+    }
+
     void insert(TKey key, TVal value);
     void remove(TKey key);
     std::optional<TVal &> find(TKey key);
@@ -32,18 +40,19 @@ private:
     struct NodeAndParentPair;
 
     std::shared_ptr<Node> root_;
+    std::shared_ptr<Node> nil_;
 
     int calcBlackHeight(std::shared_ptr<Node>);
     bool impl_validate(std::shared_ptr<Node> node);
-    Color getColor(std::shared_ptr<Node> node);
     void impl_print(std::ostream & os, std::shared_ptr<Node> node, int depth = 0);
-    NodeAndParentPair impl_find(TKey key);
+
+    std::shared_ptr<Node> impl_find(TKey key);
     void rotateRight(std::shared_ptr<Node> node);
     void rotateLeft(std::shared_ptr<Node> node);
 
     std::shared_ptr<Node> getGrandParent(std::shared_ptr<Node> node);
     std::shared_ptr<Node> getUncle(std::shared_ptr<Node> node);
-    std::shared_ptr<Node> getSibling(std::shared_ptr<Node> node, std::shared_ptr<Node> parent);
+    std::shared_ptr<Node> getSibling(std::shared_ptr<Node> node);
 
     void insertColorFixup1(std::shared_ptr<Node> node);
     void insertColorFixup2(std::shared_ptr<Node> node);
@@ -51,14 +60,17 @@ private:
     void insertColorFixup4(std::shared_ptr<Node> node);
     void insertColorFixup5(std::shared_ptr<Node> node);
 
-    void removeColorFixup1(std::shared_ptr<Node> node, std::shared_ptr<Node> parent);
-    void removeColorFixup2(std::shared_ptr<Node> node, std::shared_ptr<Node> parent);
-    void removeColorFixup3(std::shared_ptr<Node> node, std::shared_ptr<Node> parent);
-    void removeColorFixup4(std::shared_ptr<Node> node, std::shared_ptr<Node> parent);
-    void removeColorFixup5(std::shared_ptr<Node> node, std::shared_ptr<Node> parent);
+    void removeColorFixup1(std::shared_ptr<Node> node);
+    void removeColorFixup2(std::shared_ptr<Node> node);
+    void removeColorFixup3(std::shared_ptr<Node> node);
+    void removeColorFixup4(std::shared_ptr<Node> node);
+    void removeColorFixup5(std::shared_ptr<Node> node);
+    void removeColorFixup6(std::shared_ptr<Node> node);
+
+    std::shared_ptr<Node> createNode(TKey key, TVal value, std::shared_ptr<Node> parent);
     struct Node {
-        TKey key_;
-        TVal value_;
+        std::optional<TKey> key_ = std::nullopt;
+        std::optional<TVal> value_ = std::nullopt;
 
         Color color = Color::red;
 
@@ -66,43 +78,34 @@ private:
         std::shared_ptr<Node> left = nullptr;
         std::shared_ptr<Node> right = nullptr;
     };
-
-    struct NodeAndParentPair {
-        std::shared_ptr<Node> node;
-        std::shared_ptr<Node> parent;
-    };
-
 };
 
 template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::insert(TKey key, TVal value) {
-    if (!root_) {
-        root_ = std::shared_ptr<Node>{ new Node{
-            .key_ = key,
-            .value_ = value,
-        } };
+    if (root_ == nil_) {
+        root_ = createNode(key, value, nil_);
         insertColorFixup1(root_);
         return;
     }
 
-    auto [node, parent] = impl_find(key);
-    if (node) {
+    auto node = impl_find(key);
+    if (node != nil_) {
         node->value_ = value;
         return;
     }
 
-    std::shared_ptr<Node> insertedNode = std::shared_ptr<Node>(new Node{
-            .key_ = key,
-            .value_ = value,
-            .parent = parent
-        });
-    if (parent->key_ < key) {
+    auto parent = node->parent;
+    std::shared_ptr<Node> insertedNode = createNode(
+        key
+        , value
+        , parent
+    );
+
+    if (parent->key_ < key)
         parent->right = insertedNode;
-    }
-    else {
+    else
         parent->left = insertedNode;
-    }
 
     insertColorFixup1(insertedNode);
 }
@@ -110,65 +113,61 @@ RBTree_base<TKey, TVal>::insert(TKey key, TVal value) {
 template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::remove(TKey key) {
-    auto [node, parent] = impl_find(key);
+    auto node = impl_find(key);
 
-    if (!node) {
+    if (node == nil_) {
         return;
     }
 
-    if (!node->left && !node->right) {
+    auto parent = node->parent;
+    if (node->left == nil_ && node->right == nil_) {
         if (node == root_) {
-            root_ = nullptr;
+            root_ = nil_;
             return;
         }
 
-        if (parent->right == node) {
-            parent->right = nullptr;
-        }
-        else {
-            parent->left = nullptr;
-        }
+        if (parent->right == node)
+            parent->right = nil_;
+        else
+            parent->left = nil_;
 
-        if (node->color == Color::black) {
-            removeColorFixup1(nullptr, parent);
-        }
+        nil_->parent = parent;
+        if (node->color == Color::black)
+            removeColorFixup1(nil_);
         return;
     }
 
-    if (node->right && node->left) {
+    if (node->right != nil_ && node->left != nil_) {
         auto rightChild = node->right;
         auto deletedNode = rightChild;
 
-        while (deletedNode->left != nullptr) {
+        while (deletedNode->left != nil_) {
             deletedNode = deletedNode->left;
         }
 
         node->key_ = std::move(deletedNode->key_);
         node->value_ = std::move(deletedNode->value_);
 
-        if (deletedNode == rightChild) {
-            deletedNode->parent->right = deletedNode->right;
-        }
-        else {
+        if (deletedNode == rightChild)
+            node->right = rightChild->right;
+        else
             deletedNode->parent->left = deletedNode->right;
-        }
 
-        if (deletedNode->right) {
-            deletedNode->right->parent = deletedNode->parent;
-        }
+        deletedNode->right->parent = deletedNode->parent;
 
-        if (deletedNode->color == Color::red || getColor(deletedNode->right) == Color::red) {
-            if (deletedNode->right)
-                deletedNode->right->color = Color::black;
+        if (deletedNode->color == Color::red)
+            return;
+        else if (deletedNode->right->color == Color::red) {
+            deletedNode->right->color = Color::black;
+            return;
         }
-        else {
-            removeColorFixup1(deletedNode->right, deletedNode->parent);
-        }
+        else
+            removeColorFixup1(deletedNode->right);
         return;
     }
 
     std::shared_ptr<Node> deletedNode;
-    if (node->right) {
+    if (node->right != nil_) {
         deletedNode = node->right;
     }
     else {
@@ -179,24 +178,25 @@ RBTree_base<TKey, TVal>::remove(TKey key) {
     node->value_ = std::move(deletedNode->value_);
 
     node->left = deletedNode->left;
+    node->left->parent = node;
+
     node->right = deletedNode->right;
+    node->right->parent = node;
 
     if (deletedNode->color == Color::red || node->color == Color::red) {
         node->color = Color::black;
     }
     else {
-        removeColorFixup1(node, parent);
+        removeColorFixup1(node);
     }
 }
 
 template<Comparable TKey, typename TVal>
 inline std::optional<TVal &>
 RBTree_base<TKey, TVal>::find(TKey key) {
-    auto [node, _] = impl_find(key);
+    auto node = impl_find(key);
 
-    if (node)
-        return { node->value_ };
-    return std::nullopt;
+    return node->value_;
 }
 
 template<Comparable TKey, typename TVal>
@@ -211,7 +211,7 @@ inline bool RBTree_base<TKey, TVal>::validate() {
         return true;
     }
 
-    if (getColor(root_) == Color::red) {
+    if (root_->color == Color::red) {
         std::cerr << "Error: Red root" << std::endl;
     }
 
@@ -220,18 +220,18 @@ inline bool RBTree_base<TKey, TVal>::validate() {
 
 template<Comparable TKey, typename TVal>
 inline int RBTree_base<TKey, TVal>::calcBlackHeight(std::shared_ptr<Node> node) {
-    if (!node) {
+    if (node == nil_) {
         return 1;
     }
 
     int leftBH = calcBlackHeight(node->left);
     int rightBH = calcBlackHeight(node->right);
     if (leftBH != rightBH) {
-        std::cerr << "Bad node with key: " << node->key_ << std::endl;
+        std::cerr << "Bad node with key: " << *node->key_ << std::endl;
     }
 
     int BH = std::max(leftBH, rightBH);
-    if (getColor(node) == Color::black)
+    if (node->color == Color::black)
         ++BH;
     return BH;
 }
@@ -242,15 +242,9 @@ inline bool RBTree_base<TKey, TVal>::impl_validate(std::shared_ptr<Node> node) {
 }
 
 template<Comparable TKey, typename TVal>
-inline Color
-RBTree_base<TKey, TVal>::getColor(std::shared_ptr<Node> node) {
-    return (node ? node->color : Color::black);
-}
-
-template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::impl_print(std::ostream & os, std::shared_ptr<Node> node, int depth) {
-    if (!node) {
+    if (node == nil_) {
         return;
     }
 
@@ -259,96 +253,101 @@ RBTree_base<TKey, TVal>::impl_print(std::ostream & os, std::shared_ptr<Node> nod
     for (int _ = 0; _ < depth; ++_) {
         os << '\t';
     }
-    os << node->key_ << ", " << (node->color == Color::black ? "B" : "R") << std::endl;
+    os << *node->key_ << ", " << (node->color == Color::black ? "B" : "R") << std::endl;
 
     impl_print(os, node->left, depth + 1);
 }
 
 template<Comparable TKey, typename TVal>
-inline RBTree_base<TKey, TVal>::NodeAndParentPair
+inline std::shared_ptr<typename RBTree_base<TKey, TVal>::Node>
 RBTree_base<TKey, TVal>::impl_find(TKey key) {
-    if (!root_) {
-        return { nullptr, nullptr };
+    if (root_ == nil_) {
+        return nil_;
     }
 
     std::shared_ptr<Node> node = root_;
     while (node->key_ != key) {
         if (node->key_ < key) {
-            if (!node->right) {
-                return { nullptr, node };
+            if (node->right == nil_) {
+                nil_->parent = node;
+                return nil_;
             }
             node = node->right;
         }
         else {
-            if (!node->left) {
-                return { nullptr, node };
+            if (node->left == nil_) {
+                nil_->parent = node;
+                return nil_;
             }
             node = node->left;
         }
     }
-
-    return { node, node->parent };
+    return node;
 }
+
 template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::rotateRight(std::shared_ptr<Node> node) {
-    std::shared_ptr<Node> parent = node->parent;
-    std::shared_ptr<Node> grandParent = parent->parent;
-    if (parent == root_) {
-        root_ = node;
+    if (!node || node->left == nil_) {
+        std::cerr << "Trying to rotate nullptr or nil node" << std::endl;
+        return;
     }
 
-    parent->left = node->right;
-    if (node->right) {
-        node->right->parent = parent;
-    }
+    auto parent = node->parent;
+    auto pivot = node->left;
 
-    node->right = parent;
-    parent->parent = node;
+    node->left = pivot->right;
+    if (pivot->right != nil_)
+        pivot->right->parent = node;
 
-    if (grandParent) {
-        if (grandParent->right == parent) {
-            grandParent->right = node;
-        }
-        else {
-            grandParent->left = node;
-        }
+    pivot->right = node;
+    node->parent = pivot;
+
+    pivot->parent = parent;
+    if (node == root_)
+        root_ = pivot;
+    else {
+        if (parent->right == node)
+            parent->right = pivot;
+        else
+            parent->left = pivot;
     }
-    node->parent = grandParent;
 }
+
 template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::rotateLeft(std::shared_ptr<Node> node) {
-    std::shared_ptr<Node> parent = node->parent;
-    std::shared_ptr<Node> grandParent = parent->parent;
-    if (parent == root_) {
-        root_ = node;
+    if (!node || node->right == nil_) {
+        std::cerr << "Trying to rotate nullptr or nil node" << std::endl;
+        return;
     }
 
-    parent->right = node->left;
-    if (node->left) {
-        node->left->parent = parent;
-    }
+    auto parent = node->parent;
+    auto pivot = node->right;
 
-    node->left = parent;
-    parent->parent = node;
+    node->right = pivot->left;
+    if (pivot->left != nil_)
+        pivot->left->parent = node;
 
-    if (grandParent) {
-        if (grandParent->right == parent) {
-            grandParent->right = node;
-        }
-        else {
-            grandParent->left = node;
-        }
+    pivot->left = node;
+    node->parent = pivot;
+
+    pivot->parent = parent;
+    if (node == root_)
+        root_ = pivot;
+    else {
+        if (parent->right == node)
+            parent->right = pivot;
+        else
+            parent->left = pivot;
     }
-    node->parent = grandParent;
 }
+
 template<Comparable TKey, typename TVal>
 inline std::shared_ptr<typename RBTree_base<TKey, TVal>::Node>
 RBTree_base<TKey, TVal>::getGrandParent(std::shared_ptr<Node> node) {
-    if (node && node->parent) {
+    if (node && node->parent)
         return node->parent->parent;
-    }
     return nullptr;
 }
 
@@ -357,38 +356,26 @@ inline std::shared_ptr<typename RBTree_base<TKey, TVal>::Node>
 RBTree_base<TKey, TVal>::getUncle(std::shared_ptr<Node> node) {
     std::shared_ptr<Node> grandParent = getGrandParent(node);
     if (node && grandParent) {
-        if (grandParent->left == node->parent) {
+        if (grandParent->left == node->parent)
             return grandParent->right;
-        }
         return grandParent->left;
     }
-
     return nullptr;
 }
 
 template<Comparable TKey, typename TVal>
 inline std::shared_ptr<typename RBTree_base<TKey, TVal>::Node>
-RBTree_base<TKey, TVal>::getSibling(std::shared_ptr<Node> node, std::shared_ptr<Node> parent) {
-    if (node) {
-        if (parent->left == node) {
-            return parent->right;
-        }
-        return parent->left;
-    }
-    else {
-        if (parent->right) {
-            return parent->right;
-        }
-        return parent->left;
-    }
+RBTree_base<TKey, TVal>::getSibling(std::shared_ptr<Node> node) {
+    if (node->parent->right == node)
+        return node->parent->left;
+    return node->parent->right;
 }
 
 template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::insertColorFixup1(std::shared_ptr<Node> node) {
-    if (!node) {
+    if (!node)
         return;
-    }
 
     if (node == root_) {
         node->color = Color::black;
@@ -400,9 +387,8 @@ RBTree_base<TKey, TVal>::insertColorFixup1(std::shared_ptr<Node> node) {
 template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::insertColorFixup2(std::shared_ptr<Node> node) {
-    if (node->parent->color == Color::black) {
+    if (node->parent->color == Color::black)
         return;
-    }
     insertColorFixup3(node);
 }
 
@@ -413,7 +399,7 @@ RBTree_base<TKey, TVal>::insertColorFixup3(std::shared_ptr<Node> node) {
     auto uncle = getUncle(node);
     auto parent = node->parent;
 
-    if (uncle && uncle->color == Color::red) {
+    if (uncle->color == Color::red) {
         grandParent->color = Color::red;
         uncle->color = Color::black;
         parent->color = Color::black;
@@ -431,13 +417,13 @@ RBTree_base<TKey, TVal>::insertColorFixup4(std::shared_ptr<Node> node) {
     auto grandParent = getGrandParent(node);
     auto parent = node->parent;
 
-    auto nextNodeToFixup = node->parent;
+    auto nextNodeToFixup = parent;
     if (grandParent->left == parent && parent->right == node) {
-        rotateLeft(node);
+        rotateLeft(parent);
         nextNodeToFixup = node;
     }
     else if (grandParent->right == parent && parent->left == node) {
-        rotateRight(node);
+        rotateRight(parent);
         nextNodeToFixup = node;
     }
 
@@ -448,92 +434,124 @@ template<Comparable TKey, typename TVal>
 inline void
 RBTree_base<TKey, TVal>::insertColorFixup5(std::shared_ptr<Node> node) {
     auto parent = node->parent;
-    if (parent->right == node) {
-        rotateLeft(node);
-    }
-    else {
-        rotateRight(node);
-    }
+    if (parent->right == node)
+        rotateLeft(parent);
+    else
+        rotateRight(parent);
 
     node->color = Color::black;
     parent->color = Color::red;
 }
+
 template<Comparable TKey, typename TVal>
 inline void
-RBTree_base<TKey, TVal>::removeColorFixup1(std::shared_ptr<Node> node, std::shared_ptr<Node> parent) {
-    if (getColor(node) == Color::red) {
-        node->color = Color::black;
-    }
-    else {
-        removeColorFixup2(node, parent);
-    }
+RBTree_base<TKey, TVal>::removeColorFixup1(std::shared_ptr<Node> node) {
+    if (node != root_)
+        removeColorFixup2(node);
     root_->color = Color::black;
 }
 template<Comparable TKey, typename TVal>
 inline void
-RBTree_base<TKey, TVal>::removeColorFixup2(std::shared_ptr<Node> node, std::shared_ptr<Node> parent) {
-    if (node == root_) {
-        return;
-    }
-    else {
-        removeColorFixup3(node, parent);
-    }
-}
-template<Comparable TKey, typename TVal>
-inline void
-RBTree_base<TKey, TVal>::removeColorFixup3(std::shared_ptr<Node> node, std::shared_ptr<Node> parent) {
-    std::shared_ptr<Node> sibling = getSibling(node, parent);
-
-    if (!sibling) {
-        std::cerr << "Error: realization error -- found no sibling" << std::endl;
-    }
+RBTree_base<TKey, TVal>::removeColorFixup2(std::shared_ptr<Node> node) {
+    auto parent = node->parent;
+    auto sibling = getSibling(node);
 
     if (sibling->color == Color::red) {
-        if (parent->right == sibling) {
-            rotateLeft(sibling);
-        }
-        else {
-            rotateRight(sibling);
-        }
+        if (parent->right == sibling)
+            rotateLeft(parent);
+        else
+            rotateRight(parent);
+        std::swap(parent->color, sibling->color);
     }
 
-    removeColorFixup4(node, parent);
+    removeColorFixup3(node);
 }
 template<Comparable TKey, typename TVal>
 inline void
-RBTree_base<TKey, TVal>::removeColorFixup4(std::shared_ptr<Node> node, std::shared_ptr<Node> parent) {
-    std::shared_ptr<Node> sibling = getSibling(node, parent);
+RBTree_base<TKey, TVal>::removeColorFixup3(std::shared_ptr<Node> node) {
+    auto parent = node->parent;
+    auto sibling = getSibling(node);
 
-    if (getColor(sibling->left) == Color::black && getColor(sibling->right) == Color::black) {
+    if (
+        parent->color == Color::black &&
+        sibling->left->color == Color::black &&
+        sibling->right->color == Color::black
+    ) {
         sibling->color = Color::red;
-        removeColorFixup1(parent, parent->parent);
-        return;
+        removeColorFixup1(parent);
     }
-
-    if (sibling == parent->right && getColor(sibling->left) == Color::red) {
-        auto siblingLeft = sibling->left;
-        rotateRight(sibling->left);
-        std::swap(sibling->color, siblingLeft->color);
-    }
-    else if (sibling == parent->left && getColor(sibling->right) == Color::red) {
-        auto siblingRight = sibling->right;
-        rotateLeft(sibling->right);
-        std::swap(sibling->color, siblingRight->color);
-    }
-
-    removeColorFixup5(node, parent);
+    else
+        removeColorFixup4(node);
 }
+
 template<Comparable TKey, typename TVal>
 inline void
-RBTree_base<TKey, TVal>::removeColorFixup5(std::shared_ptr<Node> node, std::shared_ptr<Node> parent) {
-    auto sibling = getSibling(node, parent);
+RBTree_base<TKey, TVal>::removeColorFixup4(std::shared_ptr<Node> node) {
+    auto parent = node->parent;
+    auto sibling = getSibling(node);
 
-    if (sibling == parent->right) {
-        rotateLeft(sibling);
+    if (
+        parent->color == Color::red &&
+        sibling->left->color == Color::black &&
+        sibling->right->color == Color::black
+    ) {
+        std::swap(parent->color, sibling->color);
     }
-    else {
+    else
+        removeColorFixup5(node);
+}
+
+template<Comparable TKey, typename TVal>
+inline void
+RBTree_base<TKey, TVal>::removeColorFixup5(std::shared_ptr<Node> node) {
+    auto parent = node->parent;
+    auto sibling = getSibling(node);
+
+    if (
+        parent->left == node &&
+        sibling->right->color == Color::black
+    ) {
+        std::swap(sibling->color, sibling->left->color);
         rotateRight(sibling);
     }
+    else if (
+        parent->right == node &&
+        sibling->left->color == Color::black
+    ) {
+        std::swap(sibling->color, sibling->right->color);
+        rotateLeft(sibling);
+    }
+
+    removeColorFixup6(node);
+}
+template<Comparable TKey, typename TVal>
+inline void
+RBTree_base<TKey, TVal>::removeColorFixup6(std::shared_ptr<Node> node) {
+    auto parent = node->parent;
+    auto sibling = getSibling(node);
+
+    std::swap(sibling->color, parent->color);
+
+    if (parent->left == sibling) {
+        sibling->left->color = Color::black;
+        rotateRight(parent);
+    }
+    else {
+        sibling->right->color = Color::black;
+        rotateLeft(parent);
+    }
+}
+
+template<Comparable TKey, typename TVal>
+inline std::shared_ptr<typename RBTree_base<TKey, TVal>::Node>
+RBTree_base<TKey, TVal>::createNode(TKey key, TVal value, std::shared_ptr<Node> parent) {
+    return std::shared_ptr<Node>{new Node{
+        .key_ = key,
+        .value_ = value,
+        .parent = parent,
+        .left = nil_,
+        .right = nil_
+    }};
 }
 } // ! impl
 

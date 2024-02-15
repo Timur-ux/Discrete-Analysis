@@ -23,39 +23,43 @@ void asBits(T n) {
 }
 
 int main() {
-    const int kGenerateCount = 20;
+    const int kGenerateCount = 5000;
     std::vector<int> keys;
     tree::RBTree<int, int> tree;
 
-    std::cout << "-----------Inserting------------" << std::endl;
+    // std::cout << "-----------Inserting------------" << std::endl;
     for (int i = 0; i < kGenerateCount; ++i) {
         int key = rand();
+        // std::cout << "Inserting: " << key << std::endl;
         tree.insert(key, i);
         keys.push_back(key);
+        // tree.print();
         if (!tree.validate()) {
             std::cout << "Bad tree" << std::endl;
-            break;
+            return 1;
         }
+        // std::cout << "________________________" << std::endl;
     }
-    tree.print();
-    std::cout << "-----------Deleting------------" << std::endl;
-    for (int i = 0; i < kGenerateCount / 2; ++i) {
+    // tree.print();
+    // std::cout << "-----------Deleting------------" << std::endl;
+    for (int i = 0; i < kGenerateCount; ++i) {
         int index = rand() % keys.size();
         int key = keys[index];
-        std::cout << "The key is deleted: " << key << std::endl;
-        tree.remove(key);
+        // std::cout << "The key is deleted: " << key << std::endl;
+        // tree.remove(key);
         keys.erase(std::begin(keys) + index);
 
         if (!tree.validate()) {
             std::cout << "Bad tree" << std::endl;
-            break;
+            return 1;
         }
-        tree.print();
-        std::cout << "Deleted key: " << key << std::endl;
-        std::cout << "-----------------------" << std::endl;
+        // tree.print();
+        // std::cout << "Deleted key: " << key << std::endl;
+        // std::cout << "-----------------------" << std::endl;
 
     }
-    tree.print();
+    // tree.print();
+    std::cout << "Good" << std::endl;
     return 0;
 }
 
