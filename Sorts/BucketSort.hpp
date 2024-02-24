@@ -22,11 +22,10 @@ struct MinMaxStorage;
 template <FloatingPoint TVal>
 class BucketSort {
 private:
-    size_t segmentationSize_ = 10;
+    size_t segmentationSize_;
     impl::MinMaxStorage<TVal> impl_checkForMinMax(std::vector<TVal> & values);
 public:
     void sort(std::vector<TVal> & values);
-    void setSegmentationSize(size_t segmentationSize);
 };
 
 namespace impl {
@@ -63,6 +62,7 @@ BucketSort<TVal>::sort(std::vector<TVal> & values) {
         return;
     }
 
+    segmentationSize_ = values.size();
     auto [min, max] = impl_checkForMinMax(values);
     TVal delta = max - min;
     TVal segmentSize = delta / (segmentationSize_ - 1);
@@ -81,12 +81,6 @@ BucketSort<TVal>::sort(std::vector<TVal> & values) {
             values[lastInserted++] = value;
         }
     }
-}
-
-template<FloatingPoint TVal>
-inline void
-BucketSort<TVal>::setSegmentationSize(size_t segmentationSize) {
-    segmentationSize_ = segmentationSize;
 }
 
 } // !sorts

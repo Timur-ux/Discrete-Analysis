@@ -1,0 +1,129 @@
+\section{Описание}
+Требуется написать реализацию алгоритма сортировки подсчётом.
+
+Как сказано в [1]: \enquote{основная идея сортировки подсчетом заключается в том, чтобы для каждого входного 
+элемента $x$ определить количество элементов, которые меньше $x$}.
+
+В качестве небольшого улучшения сдвинем диапазон входных числа к нулю слева, вычев из всех чисел минимальное.
+Это позволит использовать отрицательные числа как индекс в массиве счётчика, а также, если левая граница диапазона больше нуля, сжать размер массива счётчика до размера диапазона, а не максимального числа.
+
+\pagebreak
+
+\section{Исходный код}
+
+\begin{lstlisting}[language=C++]
+#include <iostream>
+
+using namespace std;
+
+#ifndef COUNTING_SORT_HPP_
+#define COUNTING_SORT_HPP_
+/*
+    Define class CountingSort that response for sorting
+    Define struct Item that will contain key-value pairs
+*/
+#include <vector>
+
+struct Item {
+    unsigned int key;
+    unsigned long long value;
+};
+
+namespace sorts {
+
+class CountingSort {
+private:
+    unsigned int minElement_;
+    unsigned int maxElement_;
+
+    void checkForMinMaxElements(vector<Item> & items) { // find min and max keys
+        minElement_ = items[0].key;
+        maxElement_ = items[0].key;
+        for (auto & item : items) {
+            unsigned int currentKey = item.key;
+            if (currentKey < minElement_) {
+                minElement_ = currentKey;
+            }
+
+            if (currentKey > maxElement_) {
+                maxElement_ = currentKey;
+            }
+        }
+    }
+
+public:
+    CountingSort() = default;
+
+    void sort(vector<Item> & items) { // sorting
+        if (items.size() == 0) {
+            return;
+        }
+
+        checkForMinMaxElements(items);
+        vector<Item> tempItems(items); /*
+            Create items's copy 
+            Vector-argument will be sorted
+        */
+        vector<unsigned int> elementsCounter(maxElement_ - minElement_ + 1);
+
+        for (auto & item : items) {
+            elementsCounter[item.key - minElement_]++;
+        }
+
+        for (int i = 1; i < elementsCounter.size(); ++i) {
+            elementsCounter[i] += elementsCounter[i - 1];
+        }
+
+
+        for (int i = tempItems.size() - 1; i >= 0; --i) {
+            long index = --elementsCounter[tempItems[i].key - minElement_];
+            items[index] = tempItems[i];
+        }
+    }
+};
+
+} // !sorts
+
+#endif // !COUNTING_SORT_HPP_
+
+
+int main() {
+    ios::sync_with_stdio(false); // Setting that busts IOput
+    cin.tie(0);
+
+    vector<Item> data;
+
+    unsigned int key;
+    unsigned long long value;
+    while (cin >> key >> value) {
+        data.emplace_back(Item{ key, value });
+    }
+
+    sorts::CountingSort sorter;
+    sorter.sort(data);
+
+    for (auto & item : data) {
+        cout << item.key << '\t' << item.value << '\n'; // Using endl will call flush buffer so i use '\n'
+    }
+
+    return 0;
+}	
+\end{lstlisting}
+
+\section{Консоль}
+\begin{alltt}
+PS C:/Users/User/Desktop/Learning/2Course/Discrete-Analysis> cmake --build ./build --config Debug --target main -j 10 --
+PS C:/Users/User/Desktop/Learning/2Course/Discrete-Analysis> cd build
+PS C:/Users/User/Desktop/Learning/2Course/Discrete-Analysis/build> ./main.exe
+0	13207862122685464576
+65535	7670388314707853312
+0	4588010303972900864
+65535	12992997081104908288
+^D
+0	13207862122685464576
+0	4588010303972900864
+65535	7670388314707853312
+65535	12992997081104908288
+\end{alltt}
+\pagebreak
+
