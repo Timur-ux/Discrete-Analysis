@@ -2,8 +2,9 @@
 #define TREAP_HPP_
 
 #include <concepts>
-#include <memory>
 #include <iostream>
+#include <cstdlib>
+#include <cstdint>
 
 namespace sorts {
 
@@ -15,7 +16,7 @@ concept Comparable = requires(T a, T b) {
 template <Comparable TKey, Comparable TPriority>
 class Treap {
 public:
-  Treap(TKey key, TPriority priority);
+  Treap(TKey key, TPriority priority = rand());
   ~Treap();
 
   using PTreap = Treap *;
@@ -24,22 +25,37 @@ public:
   PTreapPair split(TKey key);
   static PTreap merge(PTreap less, PTreap higher);
 
-  PTreap insert(TKey key, TPriority priority);
+  PTreap insert(TKey key, TPriority priority = rand());
   PTreap remove(TKey key);
+
+  PTreap first(); // less to high order
+  PTreap last(); // less to high order
+
+  PTreap nthElement(int n);
+  static size_t getSize(PTreap treap);
+  TKey & getKey();
 
   void print(std::ostream & os = std::cout, int depth = 0);
 private:
+  static void recalc(PTreap treap);
+
   TKey key_;
   TPriority priority_;
 
   PTreap left_;
   PTreap right_;
+
+  size_t size_;
 };
 
 template<Comparable TKey, Comparable TPriority>
 inline
 Treap<TKey, TPriority>::Treap(TKey key, TPriority priority)
-  : key_(key), priority_(priority), left_(nullptr), right_(nullptr) {}
+  : key_(key)
+  , priority_(priority)
+  , left_(nullptr)
+  , right_(nullptr)
+  , size_(1) {}
 
 template<Comparable TKey, Comparable TPriority>
 inline
@@ -73,6 +89,9 @@ Treap<TKey, TPriority>::split(TKey key) {
     }
   }
 
+  recalc(splittedPair.first);
+  recalc(splittedPair.second);
+
   return splittedPair;
 }
 
@@ -102,8 +121,11 @@ Treap<TKey, TPriority>::merge(PTreap less, PTreap higher) {
     root->left_ = merge(less, root->left_);
   }
 
+  recalc(root);
+
   return root;
 }
+
 template<Comparable TKey, Comparable TPriority>
 inline Treap<TKey, TPriority>::PTreap
 Treap<TKey, TPriority>::insert(TKey key, TPriority priority) {
@@ -128,6 +150,26 @@ Treap<TKey, TPriority>::remove(TKey key) {
 }
 
 template<Comparable TKey, Comparable TPriority>
+inline Treap<TKey, TPriority>::PTreap Treap<TKey, TPriority>::first() {
+  PTreap current = this;
+  while (current->left_ != nullptr) {
+    current = current->left_;
+  }
+
+  return current;
+}
+
+template<Comparable TKey, Comparable TPriority>
+inline Treap<TKey, TPriority>::PTreap Treap<TKey, TPriority>::last() {
+  PTreap current = this;
+  while (current->right_ != nullptr) {
+    current = current->right_;
+  }
+
+  return current;
+}
+
+template<Comparable TKey, Comparable TPriority>
 inline void
 Treap<TKey, TPriority>::print(std::ostream & os, int depth) {
   if (right_) {
@@ -137,11 +179,49 @@ Treap<TKey, TPriority>::print(std::ostream & os, int depth) {
   for (int _ = 0; _ < depth; ++_) {
     os << '\t';
   }
-  os << '<' << key_ << ", " << priority_ << '>' << std::endl;
+  os << '<' << key_ << ", " << size_ << '>' << std::endl;
 
   if (left_) {
     left_->print(os, depth + 1);
   }
+}
+
+template<Comparable TKey, Comparable TPriority>
+inline Treap<TKey, TPriority>::PTreap Treap<TKey, TPriority>::nthElement(int n) {
+  if (n > size_) {
+    return nullptr;
+  }
+
+  if (n == getSize(left_) + 1) {
+    return this;
+  }
+
+  if (n <= getSize(left_)) {
+    return left_->nthElement(n);
+  }
+
+  return right_->nthElement(n - getSize(left_) - 1);
+}
+
+template<Comparable TKey, Comparable TPriority>
+inline void
+Treap<TKey, TPriority>::recalc(PTreap treap) {
+  if (treap == nullptr) {
+    return;
+  }
+
+  treap->size_ = 1 + getSize(treap->left_) + getSize(treap->right_);
+}
+
+template<Comparable TKey, Comparable TPriority>
+inline size_t
+Treap<TKey, TPriority>::getSize(PTreap treap) {
+  return (treap == nullptr ? 0 : treap->size_);
+}
+template<Comparable TKey, Comparable TPriority>
+inline TKey &
+Treap<TKey, TPriority>::getKey() {
+  return key_;
 }
 } // !sorts
 
