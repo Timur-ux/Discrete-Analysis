@@ -5,12 +5,15 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstdint>
+#include <compare>
+#include <optional>
 
 namespace sorts {
 
 template <typename T>
 concept Comparable = requires(T a, T b) {
   a <=> b;
+  a - 1;
 };
 
 template <Comparable TKey, Comparable TPriority>
@@ -36,6 +39,7 @@ public:
   TKey & getKey();
 
   void print(std::ostream & os = std::cout, int depth = 0);
+  std::optional<PTreap> find(TKey key);
 private:
   static void recalc(PTreap treap);
 
@@ -187,6 +191,24 @@ Treap<TKey, TPriority>::print(std::ostream & os, int depth) {
 }
 
 template<Comparable TKey, Comparable TPriority>
+inline std::optional<typename Treap<TKey, TPriority>::PTreap>
+Treap<TKey, TPriority>::find(TKey key) {
+  if (key_ == key) {
+    return { this };
+  }
+
+  if (key_ < key) {
+    if (right_)
+      return right_->find(key);
+    return std::nullopt;
+  }
+
+  if (left_)
+    return left->find(key);
+  return std::nullopt;
+}
+
+template<Comparable TKey, Comparable TPriority>
 inline Treap<TKey, TPriority>::PTreap Treap<TKey, TPriority>::nthElement(int n) {
   if (n > size_) {
     return nullptr;
@@ -218,6 +240,7 @@ inline size_t
 Treap<TKey, TPriority>::getSize(PTreap treap) {
   return (treap == nullptr ? 0 : treap->size_);
 }
+
 template<Comparable TKey, Comparable TPriority>
 inline TKey &
 Treap<TKey, TPriority>::getKey() {
