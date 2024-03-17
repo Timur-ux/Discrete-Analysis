@@ -1,21 +1,24 @@
 #include <iostream>
-#include "SearchingTree/AVLTree.hpp"
 #include <cstdlib>
+#include <vector>
+#include <cstdint>
+#include "SearchingTree/Treap.hpp"
+
+using namespace sorts;
 
 int main() {
-    int n;
-    std::cin >> n;
-    tree::AvlTree<int, int> tree;
-    for (int i = 1; i < n; ++i) {
-        int n = rand();
-        tree.insert(n, i);
-        if (!tree.check_tree()) {
-            std::cout << i << " <<< " << std::endl;
-            break;
-        }
-    }
-    tree.print(std::cout, 0);
+  std::vector<uint32_t> data{ 15, 24, 17, 87, 0, 122, 24, 24, 24, 96 };
+  auto * treap = new Treap<uint32_t, uint32_t>(50);
 
+  for (auto & elem : data) {
+    treap = treap->insert(elem);
+  }
 
-    return 0;
+  treap->print();
+  std::cout << "------------" << std::endl;
+  for (int i = 0; i < treap->getSize(treap); ++i) {
+    std::cout << i + 1 << ": " << treap->nthElement(i + 1)->getKey() << std::endl;
+  }
+
+  return 0;
 }
