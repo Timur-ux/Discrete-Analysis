@@ -28,4 +28,3 @@ enable_testing()
 add_executable(main_test ${TEST_SOURCES})
 target_include_directories(main_test PUBLIC Tries)
 target_link_libraries(main_test ${GTEST_LIBRARIES})
-

@@ -3,7 +3,7 @@
 #include <vector>
 #include <algorithm>
 // #include "SearchingTree/BTree.hpp"
-#include "utils/binSearch.hpp"
+#include "utils/utils.hpp"
 #include <cstdlib>
 
 int main() {
