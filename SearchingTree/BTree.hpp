@@ -1,86 +1,57 @@
 #ifndef B_TREE_HPP_
 #define B_TREE_HPP_
 
-#include "Treap.hpp"
-#include <compare>
-#include <optional>
+#include "../utils/utils.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 
 namespace sorts {
-
-template <uint64_t Seed = 2, Comparable TKey, typename TData>
-  requires (Seed >= 2)
-class BTree {
+template <typename TKey, typename TData, uint64_t Seed = 50> class BTree {
 public:
-  BTree() = default;
+  BTree();
+  void insert(TKey key, TData data);
 
-  std::optional<TData &> find(const TKey key) const;
-  void insert(const TKey key, TData data);
-  void remove(const TKey key);
 private:
-  class Node;
-  Node * root_ = nullptr;
-
-  class Node {
-  public:
-    Node(TKey key, TData data);
-
-    std::optional<TData &> find(const TKey key);
-
-    using SplittedNode = std::pair<Node *, Node *>;
-    SplittedNode split(const TKey key);
-    static Node * merge(const Node * less, Node * higher);
-  private:
-    struct Key;
-    using Keys = Treap<Key, int>;
-
-    Keys * keys_;
-
-    struct Key {
-      TKey key;
-      TData data;
-      Node * less = nullptr;
-      Node * higher = nullptr;
-
-      std::strong_ordering operator<=>(Node & other) const;
+  struct Node {
+    struct Item {
+      TKey key_;
+      TData data_;
     };
+
+    std::vector<Item> items_;
+    std::vector<Node *> childs_;
+    bool isLeaf();
+    size_t size();
+    Node *split();
   };
+
+  Node *root_;
 };
 
-template<uint64_t Seed, Comparable TKey, typename TData>
-inline std::optional<TData &>
-BTree<Seed, TKey, TData>::find(const TKey key) const {
-  if (root_ == nullptr) {
-    return std::nullopt;
-  }
-
-  return root_->find(key);
+template <typename TKey, typename TData, uint64_t Seed>
+inline BTree<TKey, TData, Seed>::BTree() {
+  root_ = new Node;
+  root_->items_.reserve(Seed);
+  root_->childs_.reserve(Seed);
 }
 
-template<uint64_t Seed, Comparable TKey, typename TData>
-inline std::optional<TData &>
-BTree<Seed, TKey, TData>::Node::find(const TKey key) {
-  std::optional<TData &> data = keys_->find(key);
+template <typename TKey, typename TData, uint64_t Seed>
+inline void BTree<TKey, TData, Seed>::insert(TKey key, TData data) {
+  if (root_->isLeaf() && root_->size() < 2 * Seed - 1) {
+    auto keyToInsert =
+        binSearch(root_->keys, key, [](Node::Item &item) { return item.key_; });
+    root_->items_.insert(keyToInsert, {.key_ = key, .data_ = data});
 
-  if (data) {
-    return data;
+    return;
+  } else if (root_->size() == 2 * Seed - 1) {
   }
-
-  auto [less, higher] = keys_->split(key);
-  Key * nextKey = higher->first();
-  Node * nextNode;
-
-  if (nextKey != nullptr) {
-    nextNode = nextKey->less;
-  }
-  else {
-    nextKey = less->last();
-    nextNode = nextKey->higher;
-  }
-
-  keys_ = Keys::merge(less, higher);
-
-  return nextNode->find(key);
 }
-} // ! sorts
+
+template <typename TKey, typename TData, uint64_t Seed>
+inline BTree<TKey, TData, Seed>::Node * BTree<TKey, TData, Seed>::Node::split() {
+//TODO
+}
+} // namespace sorts
 
 #endif // ! B_TREE_HPP_

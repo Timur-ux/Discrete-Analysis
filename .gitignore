@@ -34,8 +34,8 @@
 /build
 /.vscode
 /CMakeFiles
-/tests
-
+/out
+/.cache
 *.t
 *.a
 *.log

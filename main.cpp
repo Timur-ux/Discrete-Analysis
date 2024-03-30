@@ -1,23 +1,29 @@
-#include <iostream>
-#include <cstdlib>
-#include <vector>
 #include <cstdint>
-#include "SearchingTree/Treap.hpp"
-
-using namespace sorts;
+#include <iostream>
+#include <vector>
+#include <algorithm>
+// #include "SearchingTree/BTree.hpp"
+#include "utils/binSearch.hpp"
+#include <cstdlib>
 
 int main() {
-  std::vector<uint32_t> data{ 15, 24, 17, 87, 0, 122, 24, 24, 24, 96 };
-  auto * treap = new Treap<uint32_t, uint32_t>(50);
-
-  for (auto & elem : data) {
-    treap = treap->insert(elem);
+  const int n = 10;
+  std::vector<int> data;
+  for (size_t i = 0; i < n; ++i) {
+    data.emplace_back(rand()%1000);
   }
 
-  treap->print();
-  std::cout << "------------" << std::endl;
-  for (int i = 0; i < treap->getSize(treap); ++i) {
-    std::cout << i + 1 << ": " << treap->nthElement(i + 1)->getKey() << std::endl;
+  std::sort(data.begin(), data.end()); 
+
+  for (auto &item : data) {
+    std::cout << item << ' ';
+  }
+  std::cout << std::endl;
+
+  for (auto &item : data) {
+    std::cout << item << ' '
+              << *binSearch<int, int>(data, item, [](int item) { return item; })
+              << std::endl;
   }
 
   return 0;

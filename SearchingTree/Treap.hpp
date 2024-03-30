@@ -1,11 +1,8 @@
 #ifndef TREAP_HPP_
 #define TREAP_HPP_
 
-#include <concepts>
 #include <iostream>
 #include <cstdlib>
-#include <cstdint>
-#include <compare>
 #include <optional>
 
 namespace sorts {
@@ -204,7 +201,7 @@ Treap<TKey, TPriority>::find(TKey key) {
   }
 
   if (left_)
-    return left->find(key);
+    return left_->find(key);
   return std::nullopt;
 }
 
