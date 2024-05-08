@@ -8,11 +8,6 @@
 using duration_t = std::chrono::microseconds;
 const std::string DURATION_PREFIX = "us";
 
-/*
-using duration_t = std::chrono::milliseconds;
-const std::string DURATION_PREFIX = "ms";
-*/
-
 int main() {
   sorts::CountingSort sorter;
 

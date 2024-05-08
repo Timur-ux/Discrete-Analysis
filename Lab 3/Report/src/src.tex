@@ -1,0 +1,90 @@
+\section{Отчет}
+В качестве профилировщика использовалась Unix утилита Valgrind с флагами полной проверки утечек памяти и их отображении. Как показывает утилита, на 923 аллокаций памяти приходится 917 деаллокаций. Остальные 6 блоков памяти были аллокцированы в функции \lstinline{std::ios_base::sync_with_stdio(bool)}, которая не является частью АВЛ-дерева, следовательно, АВЛ-дерево не оставляет после своей работы утечек памяти, о чем нам говорит и Valgrind:
+\begin{Verbatim}
+==8168== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+\end{Verbatim}
+
+Полный лог профилировщика:\\
+\begin{Verbatim}[breaklines=true]
+raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis/out/Debug$ valgrind --leak-check=full --show-leak-kinds=all ./main < 1000Cmds.txt 
+==8168== Memcheck, a memory error detector
+==8168== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==8168== Using Valgrind-3.21.0 and LibVEX; rerun with -h for copyright info
+==8168== Command: ./main
+==8168== 
+OK
+OK
+OK
+OK
+OK
+OK
+OK
+[990 lines skipped]
+OK
+OK
+Exist
+==8168== 
+==8168== HEAP SUMMARY:
+==8168==     in use at exit: 122,880 bytes in 6 blocks
+==8168==   total heap usage: 923 allocs, 917 frees, 261,536 bytes allocated
+==8168== 
+==8168== 8,192 bytes in 1 blocks are still reachable in loss record 1 of 6
+==8168==    at 0x484A2D3: operator new[](unsigned long) (vg_replace_malloc.c:714)
+==8168==    by 0x4982023: std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30
+)
+==8168==    by 0x497FEB1: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x492C9FC: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x10B831: main (main.cpp:378)
+==8168== 
+==8168== 8,192 bytes in 1 blocks are still reachable in loss record 2 of 6
+==8168==    at 0x484A2D3: operator new[](unsigned long) (vg_replace_malloc.c:714)
+==8168==    by 0x4982023: std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30
+)
+==8168==    by 0x497FEB1: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x492CA1F: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x10B831: main (main.cpp:378)
+==8168== 
+==8168== 8,192 bytes in 1 blocks are still reachable in loss record 3 of 6
+==8168==    at 0x484A2D3: operator new[](unsigned long) (vg_replace_malloc.c:714)
+==8168==    by 0x4982023: std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30
+)
+==8168==    by 0x497FEB1: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x492CA42: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x10B831: main (main.cpp:378)
+==8168== 
+==8168== 32,768 bytes in 1 blocks are still reachable in loss record 4 of 6
+==8168==    at 0x484A2D3: operator new[](unsigned long) (vg_replace_malloc.c:714)
+==8168==    by 0x4983D56: std::basic_filebuf<wchar_t, std::char_traits<wchar_t> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.
+6.0.30)
+==8168==    by 0x4980091: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x492CAAB: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x10B831: main (main.cpp:378)
+==8168== 
+==8168== 32,768 bytes in 1 blocks are still reachable in loss record 5 of 6
+==8168==    at 0x484A2D3: operator new[](unsigned long) (vg_replace_malloc.c:714)
+==8168==    by 0x4983D56: std::basic_filebuf<wchar_t, std::char_traits<wchar_t> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.
+6.0.30)
+==8168==    by 0x4980091: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x492CACE: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x10B831: main (main.cpp:378)
+==8168== 
+==8168== 32,768 bytes in 1 blocks are still reachable in loss record 6 of 6
+==8168==    at 0x484A2D3: operator new[](unsigned long) (vg_replace_malloc.c:714)
+==8168==    by 0x4983D56: std::basic_filebuf<wchar_t, std::char_traits<wchar_t> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.
+6.0.30)
+==8168==    by 0x4980091: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x492CAF1: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30)
+==8168==    by 0x10B831: main (main.cpp:378)
+==8168== 
+==8168== LEAK SUMMARY:
+==8168==    definitely lost: 0 bytes in 0 blocks
+==8168==    indirectly lost: 0 bytes in 0 blocks
+==8168==      possibly lost: 0 bytes in 0 blocks
+==8168==    still reachable: 122,880 bytes in 6 blocks
+==8168==         suppressed: 0 bytes in 0 blocks
+==8168== 
+==8168== For lists of detected and suppressed errors, rerun with: -s
+==8168== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+\end{Verbatim}
+\pagebreak
+

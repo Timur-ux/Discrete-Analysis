@@ -8,12 +8,10 @@ template <typename T>
 concept TComparable = requires(T a, T b) { a <=> b; };
 
 template <typename T, TComparable TKey>
-std::vector<T>::iterator binSearch(std::vector<T> &data, T &item,
-                                   const std::function<TKey(T)> &keyFetcher) {
+std::vector<T>::iterator binSearch(std::vector<T> &data, TKey &key,
+                                   const std::function<TKey(T&)> keyFetcher) {
   size_t L = 0;
   size_t R = data.size();
-
-  TKey key = keyFetcher(item);
 
   size_t mid = (L + R) / 2;
   while (L < R) {

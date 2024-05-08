@@ -1,5 +1,9 @@
+*.pdf
+*.aux
+*.dvi
 # Prerequisites
 *.d
+
 
 # Compiled Object files
 *.slo

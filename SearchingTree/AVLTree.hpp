@@ -27,24 +27,23 @@ template <Comparable TKey, typename TVal>
 class AvlTree {
 private:
     struct Node;
-    struct NodeAndParentPair;
-    std::shared_ptr<Node> root_ = nullptr;
+    Node * root_ = nullptr;
 
-    void rotateLeft(std::shared_ptr<Node> node);
-    void rotateRight(std::shared_ptr<Node> node);
+    void rotateLeft(Node * node);
+    void rotateRight(Node * node);
 
-    void rebalanceAfterInsertion(std::shared_ptr<Node> node);
-    void rebalanceAfterRemove(std::shared_ptr<Node> node);
+    void rebalanceAfterInsertion(Node * node);
+    void rebalanceAfterRemove(Node * node);
 
-    NodeAndParentPair impl_find(const TKey key) const;
-    void impl_print(std::ostream & os, int depth, std::shared_ptr<Node> node);
-    int calc_height(std::shared_ptr<Node> node);
-    bool impl_check(std::shared_ptr<Node> node);
+    std::pair<Node *, Node*> impl_find(const TKey key) const;
+    void impl_print(std::ostream & os, int depth, Node * node);
+    int calc_height(Node * node);
+    bool impl_check(Node * node);
 
-    void impl_deleteLeaf(std::shared_ptr<Node> node);
-    void impl_deleteFullNode(std::shared_ptr<Node> node);
-    void impl_deleteNodeWithOnlyLeftChild(std::shared_ptr<Node> node);
-    void impl_deleteNodeWithOnlyRightChild(std::shared_ptr<Node> node);
+    void impl_deleteLeaf(Node * node);
+    void impl_deleteFullNode(Node * node);
+    void impl_deleteNodeWithOnlyLeftChild(Node * node);
+    void impl_deleteNodeWithOnlyRightChild(Node * node);
 public:
     void insert(const TKey key, TVal value);
     void remove(const TKey key);
@@ -62,26 +61,26 @@ private:
         TVal value_;
 
         impl::Balance balance = impl::balanced;
-        std::shared_ptr<Node> parent = nullptr;
-        std::shared_ptr<Node> left = nullptr;
-        std::shared_ptr<Node> right = nullptr;
+        Node * parent = nullptr;
+        Node * left = nullptr;
+        Node * right = nullptr;
     };
 
     struct NodeAndParentPair {
-        std::shared_ptr<Node> node;
-        std::shared_ptr<Node> parent;
+        Node * node;
+        Node * parent;
     };
 };
 
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::rotateLeft(std::shared_ptr<Node> node) {
+AvlTree<TKey, TVal>::rotateLeft(Node * node) {
     if (node == nullptr || node == root_) {
         return;
     }
 
-    std::shared_ptr<Node> parent = node->parent;
+    Node * parent = node->parent;
     if (parent == root_) {
         root_ = node;
     }
@@ -106,12 +105,12 @@ AvlTree<TKey, TVal>::rotateLeft(std::shared_ptr<Node> node) {
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::rotateRight(std::shared_ptr<Node> node) {
+AvlTree<TKey, TVal>::rotateRight(Node * node) {
     if (node == nullptr || node == root_) {
         return;
     }
 
-    std::shared_ptr<Node> parent = node->parent;
+    Node * parent = node->parent;
     if (parent == root_) {
         root_ = node;
     }
@@ -136,12 +135,12 @@ AvlTree<TKey, TVal>::rotateRight(std::shared_ptr<Node> node) {
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::rebalanceAfterInsertion(std::shared_ptr<Node> node) {
+AvlTree<TKey, TVal>::rebalanceAfterInsertion(Node * node) {
     if (node->balance == impl::balanced) {
         return;
     }
 
-    std::shared_ptr<Node> parent = node->parent;
+    Node * parent = node->parent;
     if (node->balance == impl::left || node->balance == impl::right) {
         if (node == root_) {
             return;
@@ -158,14 +157,14 @@ AvlTree<TKey, TVal>::rebalanceAfterInsertion(std::shared_ptr<Node> node) {
         return;
     }
     else if (node->balance == impl::badRight) {
-        std::shared_ptr<Node> rightChild = node->right;
+        Node * rightChild = node->right;
         if (rightChild->balance == impl::right) {
             rotateLeft(rightChild);
             node->balance = impl::balanced;
             rightChild->balance = impl::balanced;
         }
         else {
-            std::shared_ptr<Node> rightLeftChild = rightChild->left;
+            Node * rightLeftChild = rightChild->left;
             rotateRight(rightLeftChild);
             rotateLeft(rightLeftChild);
 
@@ -183,14 +182,14 @@ AvlTree<TKey, TVal>::rebalanceAfterInsertion(std::shared_ptr<Node> node) {
         return;
     }
     else if (node->balance == impl::badLeft) {
-        std::shared_ptr<Node> leftChild = node->left;
+        Node * leftChild = node->left;
         if (leftChild->balance == impl::left) {
             rotateRight(leftChild);
             node->balance = impl::balanced;
             leftChild->balance = impl::balanced;
         }
         else {
-            std::shared_ptr<Node> leftRightChild = leftChild->right;
+            Node * leftRightChild = leftChild->right;
             rotateLeft(leftRightChild);
             rotateRight(leftRightChild);
 
@@ -211,7 +210,7 @@ AvlTree<TKey, TVal>::rebalanceAfterInsertion(std::shared_ptr<Node> node) {
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::rebalanceAfterRemove(std::shared_ptr<Node> node) {
+AvlTree<TKey, TVal>::rebalanceAfterRemove(Node * node) {
     if (node->balance == impl::left || node->balance == impl::right) {
         return;
     }
@@ -221,7 +220,7 @@ AvlTree<TKey, TVal>::rebalanceAfterRemove(std::shared_ptr<Node> node) {
             return;
         }
 
-        std::shared_ptr<Node> parent = node->parent;
+        Node * parent = node->parent;
         if (parent->right == node) {
             parent->balance = static_cast<impl::Balance>(parent->balance + 1);
         }
@@ -234,7 +233,7 @@ AvlTree<TKey, TVal>::rebalanceAfterRemove(std::shared_ptr<Node> node) {
     }
 
     if (node->balance == impl::badLeft) {
-        std::shared_ptr<Node> leftChild = node->left;
+        Node * leftChild = node->left;
 
         if (leftChild->balance == impl::left) {
             rotateRight(leftChild);
@@ -256,7 +255,7 @@ AvlTree<TKey, TVal>::rebalanceAfterRemove(std::shared_ptr<Node> node) {
         }
 
         // leftChild->balance == impl::right
-        std::shared_ptr<Node> leftRightChild = leftChild->right;
+        Node * leftRightChild = leftChild->right;
         rotateLeft(leftRightChild);
         rotateRight(leftRightChild);
 
@@ -276,7 +275,7 @@ AvlTree<TKey, TVal>::rebalanceAfterRemove(std::shared_ptr<Node> node) {
     }
 
     if (node->balance == impl::badRight) {
-        std::shared_ptr<Node> rightChild = node->right;
+        Node * rightChild = node->right;
 
         if (rightChild->balance == impl::right) {
             rotateLeft(rightChild);
@@ -298,7 +297,7 @@ AvlTree<TKey, TVal>::rebalanceAfterRemove(std::shared_ptr<Node> node) {
         }
 
         // rightChild->balance == impl::left
-        std::shared_ptr<Node> rightLeftChild = rightChild->left;
+        Node * rightLeftChild = rightChild->left;
         rotateRight(rightLeftChild);
         rotateLeft(rightLeftChild);
 
@@ -320,13 +319,13 @@ AvlTree<TKey, TVal>::rebalanceAfterRemove(std::shared_ptr<Node> node) {
 }
 
 template<Comparable TKey, typename TVal>
-inline AvlTree<TKey, TVal>::NodeAndParentPair
+inline std::pair<AvlTree<TKey, TVal>::Node*, AvlTree<TKey, TVal>::Node*>
 AvlTree<TKey, TVal>::impl_find(const TKey key) const {
     if (root_ == nullptr) {
         return { nullptr, nullptr };
     }
 
-    std::shared_ptr<Node> currentNode = root_;
+    Node * currentNode = root_;
     while (currentNode->key_ != key) {
         if (currentNode->key_ > key) {
             if (!currentNode->left) {
@@ -346,7 +345,7 @@ AvlTree<TKey, TVal>::impl_find(const TKey key) const {
 }
 
 template<Comparable TKey, typename TVal>
-inline void AvlTree<TKey, TVal>::impl_print(std::ostream & os, int depth, std::shared_ptr<Node> node) {
+inline void AvlTree<TKey, TVal>::impl_print(std::ostream & os, int depth, Node * node) {
     if (node == nullptr) {
         return;
     }
@@ -360,7 +359,7 @@ inline void AvlTree<TKey, TVal>::impl_print(std::ostream & os, int depth, std::s
 }
 
 template<Comparable TKey, typename TVal>
-inline int AvlTree<TKey, TVal>::calc_height(std::shared_ptr<Node> node) {
+inline int AvlTree<TKey, TVal>::calc_height(Node * node) {
     if (node == nullptr) {
         return 0;
     }
@@ -368,7 +367,7 @@ inline int AvlTree<TKey, TVal>::calc_height(std::shared_ptr<Node> node) {
 }
 
 template<Comparable TKey, typename TVal>
-inline bool AvlTree<TKey, TVal>::impl_check(std::shared_ptr<Node> node) {
+inline bool AvlTree<TKey, TVal>::impl_check(Node * node) {
     if (node == nullptr) {
         return true;
     }
@@ -383,13 +382,13 @@ inline bool AvlTree<TKey, TVal>::impl_check(std::shared_ptr<Node> node) {
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::impl_deleteLeaf(std::shared_ptr<Node> node) {
+AvlTree<TKey, TVal>::impl_deleteLeaf(Node * node) {
     if (node == root_) {
         root_ = nullptr;
         return;
     }
 
-    std::shared_ptr<Node> parent = node->parent;
+    Node * parent = node->parent;
     if (parent->right == node) {
         parent->right = nullptr;
         parent->balance = static_cast<impl::Balance>(parent->balance + 1);
@@ -404,12 +403,12 @@ AvlTree<TKey, TVal>::impl_deleteLeaf(std::shared_ptr<Node> node) {
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::impl_deleteFullNode(std::shared_ptr<Node> node) {
-    std::shared_ptr<Node> rightChild = node->right;
-    std::shared_ptr<Node> rightLeftChild = rightChild->left;
+AvlTree<TKey, TVal>::impl_deleteFullNode(Node * node) {
+    Node * rightChild = node->right;
+    Node * rightLeftChild = rightChild->left;
 
     if (rightLeftChild) {
-        std::shared_ptr<Node> nodeToDelete = rightLeftChild;
+        Node * nodeToDelete = rightLeftChild;
         while (nodeToDelete->left) {
             nodeToDelete = nodeToDelete->left;
         }
@@ -437,15 +436,15 @@ AvlTree<TKey, TVal>::impl_deleteFullNode(std::shared_ptr<Node> node) {
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::impl_deleteNodeWithOnlyLeftChild(std::shared_ptr<Node> node) {
+AvlTree<TKey, TVal>::impl_deleteNodeWithOnlyLeftChild(Node * node) {
     if (node == root_) {
         root_ = node->left;
         root_->parent = nullptr;
         return;
     }
 
-    std::shared_ptr<Node> parent = node->parent;
-    std::shared_ptr<Node> leftChild = node->left;
+    Node * parent = node->parent;
+    Node * leftChild = node->left;
 
     if (parent->right == node) {
         parent->right = leftChild;
@@ -464,15 +463,15 @@ AvlTree<TKey, TVal>::impl_deleteNodeWithOnlyLeftChild(std::shared_ptr<Node> node
 
 template<Comparable TKey, typename TVal>
 inline void
-AvlTree<TKey, TVal>::impl_deleteNodeWithOnlyRightChild(std::shared_ptr<Node> node) {
+AvlTree<TKey, TVal>::impl_deleteNodeWithOnlyRightChild(Node * node) {
     if (node == root_) {
         root_ = node->right;
         root_->parent = nullptr;
         return;
     }
 
-    std::shared_ptr<Node> parent = node->parent;
-    std::shared_ptr<Node> rightChild = node->right;
+    Node * parent = node->parent;
+    Node * rightChild = node->right;
 
     if (parent->right == node) {
         parent->right = rightChild;
@@ -494,10 +493,10 @@ template<Comparable TKey, typename TVal>
 inline void
 AvlTree<TKey, TVal>::insert(const TKey key, TVal value) {
     if (root_ == nullptr) {
-        root_ = std::shared_ptr<Node>(new Node{
+        root_ = new Node{
               .key_ = key
             , .value_ = value
-        });
+        };
         return;
     }
 
@@ -508,22 +507,22 @@ AvlTree<TKey, TVal>::insert(const TKey key, TVal value) {
     }
 
     if (parent->key_ > key) {
-        parent->left = std::shared_ptr<Node>(new Node{
+        parent->left = new Node{
               .key_ = key
             , .value_ = value
             , .parent = parent
-        });
+        };
         parent->balance = static_cast<impl::Balance>(parent->balance + 1);
         rebalanceAfterInsertion(parent);
         return;
     }
 
     if (parent->key_ < key) {
-        parent->right = std::shared_ptr<Node>(new Node{
+        parent->right = new Node{
               .key_ = key
             , .value_ = value
             , .parent = parent
-        });
+        };
         parent->balance = static_cast<impl::Balance>(parent->balance - 1);
         rebalanceAfterInsertion(parent);
         return;
