@@ -1,7 +1,7 @@
 #include "z_string.hpp"
 #include <vector>
 
-std::vector<size_t> z_string(std::string s) {
+std::vector<size_t> z_string(std::string& s) {
   int64_t l = 0, r = 0;
   int64_t i = 1;
 
@@ -21,7 +21,7 @@ std::vector<size_t> z_string(std::string s) {
   return z;
 }
 
-std::vector<size_t> z_string_subs(std::string s, std::string sub, char sep) {
+std::vector<size_t> z_string_subs(std::string& s, std::string& sub, char sep) {
   std::string concatenated = sub + sep + s;
   std::vector<size_t> z = z_string(concatenated);
   std::vector<size_t> result{};

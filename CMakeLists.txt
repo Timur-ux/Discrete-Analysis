@@ -34,4 +34,5 @@ target_include_directories(main_test PUBLIC Tries)
 target_link_libraries(main_test
   ${GTEST_LIBRARIES}
   strings_lib)
+target_link_libraries(main strings_lib)
 

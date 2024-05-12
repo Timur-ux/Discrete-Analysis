@@ -1,0 +1,2 @@
+all:
+	./out/Debug/main

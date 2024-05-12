@@ -1,0 +1,35 @@
+\section{Тест производительности}
+В сравнении с реализацией красно-черного дерева из билиотеки STL АВЛ-дерево показывает вдвое худший результат, тем не менее это означает, что АВЛ-дерево имеет сопоставимую с красно-черным деревом асимптотику, т.е. $O(log\; N)$
+\begin{verbatim*}
+raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis$ ./out/Debug/main < test.txt
+Pattern's quantity: 250
+Overall pattern's size: 2205
+Text size: 9957
+Aho-Korasik time: 20
+KMP time: 164
+z-function time: 103
+raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis$ ./out/Debug/main < test.txt 
+Pattern's quantity: 500
+Overall pattern's size: 4211
+Text size: 9961
+Aho-Korasik time: 31
+KMP time: 278
+z-function time: 216
+raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis$ ./out/Debug/main < test.txt 
+Pattern's quantity: 1000
+Overall pattern's size: 8435
+Text size: 9949
+Aho-Korasik time: 48
+KMP time: 562
+z-function time: 429
+raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis$ ./out/Debug/main < test.txt
+Pattern's quantity: 1000
+Overall pattern's size: 1954
+Text size: 9952
+Aho-Korasik time: 35
+KMP time: 604
+z-function time: 433
+\end{verbatim*}
+
+\pagebreak
+

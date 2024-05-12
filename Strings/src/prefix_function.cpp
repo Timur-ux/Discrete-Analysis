@@ -4,7 +4,7 @@
 #include <vector>
 
 
-std::vector<size_t> prefix_function(std::string s) {
+std::vector<size_t> prefix_function(std::string& s) {
   std::vector<size_t> z = z_string(s);
   std::vector<size_t> result(s.size(), 0);
 
@@ -21,7 +21,7 @@ std::vector<size_t> prefix_function(std::string s) {
 }
 
 
-std::vector<size_t> kmp(std::string s) {
+std::vector<size_t> kmp(std::string&s) {
   std::vector<size_t> result(s.size(), 0);
   for(size_t i = 1; i < s.size(); ++i) {
     size_t j = result[i - 1];
@@ -37,7 +37,7 @@ std::vector<size_t> kmp(std::string s) {
   return result;
 }
 
-std::vector<size_t> kmp_subs(std::string s, std::string sub, char sep) {
+std::vector<size_t> kmp_subs(std::string& s, std::string& sub, char sep) {
   std::string concatenated = sub + sep + s;
   std::vector<size_t> prefix_result = prefix_function(concatenated);
 
