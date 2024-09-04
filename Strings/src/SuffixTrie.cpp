@@ -28,31 +28,53 @@ SuffixTrie::splitArc(std::pair<Node *, size_t> position, size_t i) {
   auto &[node, shift] = position;
 
   if (node == root_) {
-    Node *newNode = (root_->translations[text_[i]] = new Node{
-                         .slice = {leafs_, endPos_}, .startPos = leafs_});
+    Node *newNode =
+        (root_->translations[text_[i]] = new Node{.slice = {leafs_, endPos_},
+                                                  .parent = root_,
+                                                  .suffixStartPos = leafs_});
 
     ++leafs_;
-    lastNode_ = nullptr;
-
     return {root_, newNode};
   }
 
   Node *oldNode =
       (node->translations[text_[node->slice.first + shift]] =
            new Node{.slice = {node->slice.first + shift, node->slice.second},
-                    .startPos = node->startPos});
-  Node *newNode = (node->translations[text_[i]] =
-                       new Node{.slice = {i, endPos_}, .startPos = leafs_});
+                    .parent = node,
+                    .suffixStartPos = node->suffixStartPos});
+  Node *newNode =
+      (node->translations[text_[i]] = new Node{
+           .slice = {i, endPos_}, .parent = node, .suffixStartPos = leafs_});
 
   node->slice.second = std::make_shared<size_t>(node->slice.first + shift);
-  node->startPos = std::nullopt;
-
+  node->suffixStartPos = std::nullopt;
   ++leafs_;
-  if (lastNode_ != nullptr)
-    lastNode_->link = node;
-  lastNode_ = node;
 
   return {oldNode, newNode};
+}
+
+std::pair<SuffixTrie::Node *, size_t>
+SuffixTrie::runBack(std::pair<Node *, size_t> position, size_t i) {
+  auto &[node, totalShift] = position;
+  while (node->link == nullptr && node != root_) {
+    node = node->parent;
+    totalShift += *node->slice.second - node->slice.first;
+  }
+
+  if (node->link != nullptr)
+    node = node->link;
+
+  node = node->translations[text_[i - totalShift]];
+  while(totalShift > *node->slice.second - node->slice.first) {
+    totalShift -= *node->slice.second - node->slice.first;
+    node = node->translations[text_[i - totalShift]];
+  }
+
+  size_t shift = 0;
+  while(totalShift > shift && text_[i - totalShift] == text_[node->slice.first + shift])
+    shift++;
+
+  return {node, shift};
 }
 
 void SuffixTrie::createTrie() {
@@ -67,7 +89,7 @@ void SuffixTrie::createTrie() {
         continue;
       } else {
         auto [oldNode, newNode] = splitArc(activePoint, i);
-        
+        // TODO: run back for smaller suffixes
       }
     }
   }

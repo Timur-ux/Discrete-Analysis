@@ -13,13 +13,13 @@ struct Matching {
   bool operator<=>(const Matching&) const = default;
 };
 
-struct occurence {
+struct Occurence {
   size_t count;
   std::vector<Matching> matchings;
-  bool operator<=>(const occurence &) const = default;
+  bool operator<=>(const Occurence &) const = default;
 };
 
-using occurences = std::map<std::string, occurence>; 
+using occurences = std::map<std::string, Occurence>; 
 
 class AKTrie {
   public:

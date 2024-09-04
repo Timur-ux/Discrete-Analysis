@@ -25,7 +25,8 @@ class SuffixTrie {
       std::pair<size_t, std::shared_ptr<size_t>> slice; // Slice of text on arc, right border may be changed from another places, so it ptr
       std::map<char, Node*> translations;
       Node * link = nullptr; // Suffix link
-      std::optional<size_t> startPos = std::nullopt; // Index of suffix ends here (nullopt for non-leaf nodes)
+      Node * parent = nullptr;
+      std::optional<size_t> suffixStartPos = std::nullopt; // Index of suffix ends here (nullopt for non-leaf nodes)
 
       bool canGoTo(const char &) const;
     };
@@ -35,6 +36,11 @@ class SuffixTrie {
                                 
     // Split arc by given position, letter at text_[i] inserted as translation on new arc 
     std::pair<Node*, Node *> splitArc(std::pair<Node *, size_t> position, size_t i);
+
+    // Run back for smaller suffix by suffix link or run futher and set suffix link
+    // i is index of current char in text_
+    // Return position of smaller suffix
+    std::pair<Node*, size_t> runBack(std::pair<Node *, size_t> position, size_t i);
 
     void deleteNode(Node * node);
     void createTrie();
