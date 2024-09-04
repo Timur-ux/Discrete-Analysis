@@ -1,0 +1,51 @@
+#ifndef SUFFIX_TRIE_HPP_
+#define SUFFIX_TRIE_HPP_
+
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
+
+struct Occurence {
+  size_t count;
+  std::vector<size_t> beginPositions;
+
+  bool operator<=>(const Occurence &) const = default;
+};
+
+class SuffixTrie {
+  /* Realization of Ukkonen's algorithm */
+  private:
+    const std::string & text_;
+    std::shared_ptr<size_t> endPos_ = std::make_shared<size_t>(0); // Position of last inserted letter in trie
+    size_t leafs_ = 0; // Used for detecting start of suffix
+    
+    struct Node {
+      std::pair<size_t, std::shared_ptr<size_t>> slice; // Slice of text on arc, right border may be changed from another places, so it ptr
+      std::map<char, Node*> translations;
+      Node * link = nullptr; // Suffix link
+      std::optional<size_t> startPos = std::nullopt; // Index of suffix ends here (nullopt for non-leaf nodes)
+
+      bool canGoTo(const char &) const;
+    };
+
+    Node * root_ = nullptr;
+    Node * lastNode_ = nullptr; // Last inserted node for splitted arc
+                                
+    // Split arc by given position, letter at text_[i] inserted as translation on new arc 
+    std::pair<Node*, Node *> splitArc(std::pair<Node *, size_t> position, size_t i);
+
+    void deleteNode(Node * node);
+    void createTrie();
+
+  public:
+    SuffixTrie(const std::string &text);
+
+    Occurence find(const std::string & pattern) const;
+
+    ~SuffixTrie();
+};
+
+
+#endif // !SUFFIX_TRIE_HPP_
