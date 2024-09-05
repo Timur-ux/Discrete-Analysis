@@ -37,6 +37,9 @@ class SuffixTrie {
     // Split arc by given position, letter at text_[i] inserted as translation on new arc 
     std::pair<Node*, Node *> splitArc(std::pair<Node *, size_t> position, size_t i);
 
+    // Split cascade of suffixes by letter at text_[i] by decreasing suffixes length
+    std::pair<Node *, size_t> splitCascade(std::pair<Node *, size_t> position, size_t i);
+
     // Run back for smaller suffix by suffix link or run futher and set suffix link
     // i is index of current char in text_
     // Return position of smaller suffix
@@ -44,6 +47,8 @@ class SuffixTrie {
 
     void deleteNode(Node * node);
     void createTrie();
+
+    void printTree(Node * node, size_t depth = 0);
 
   public:
     SuffixTrie(const std::string &text);

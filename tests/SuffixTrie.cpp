@@ -4,15 +4,13 @@
 
 using TestPattern = std::pair<std::string, std::vector<size_t>>;
 
-TEST(StringsTestSuite, Aho_Korasik) {
-  std::string text = "catafalk catch cat and dog said -- taf";
-  TestPattern pattern1 = { "cat", {0, 9, 15}};
+TEST(StringsTestSuite, SuffixTrie) {
+  // std::string text = "catafalk catch cat and dog said -- taf$";
+  std::string text = "AABAABCAABCD$";
+  // TestPattern pattern1 = { "cat", {0, 9, 15}};
 
+  SuffixTrie trie(text);
 
   
-
-
-
-
-  ASSERT_EQ(expected, given);
+  ASSERT_TRUE(false);
 }

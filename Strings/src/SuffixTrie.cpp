@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "SuffixTrie.hpp"
 
 SuffixTrie::SuffixTrie(const std::string &text) : text_(text) {
@@ -32,19 +34,21 @@ SuffixTrie::splitArc(std::pair<Node *, size_t> position, size_t i) {
         (root_->translations[text_[i]] = new Node{.slice = {leafs_, endPos_},
                                                   .parent = root_,
                                                   .suffixStartPos = leafs_});
-
     ++leafs_;
     return {root_, newNode};
   }
 
-  Node *oldNode =
-      (node->translations[text_[node->slice.first + shift]] =
-           new Node{.slice = {node->slice.first + shift, node->slice.second},
-                    .parent = node,
-                    .suffixStartPos = node->suffixStartPos});
-  Node *newNode =
-      (node->translations[text_[i]] = new Node{
-           .slice = {i, endPos_}, .parent = node, .suffixStartPos = leafs_});
+  Node *oldNode = nullptr, *newNode = nullptr;
+  if (!node->canGoTo(text_[node->slice.first + shift]))
+    oldNode = (node->translations[text_[node->slice.first + shift]] = new Node{
+                   .slice = {node->slice.first + shift, node->slice.second},
+                   .parent = node,
+                   .suffixStartPos = node->suffixStartPos});
+
+  if (!node->canGoTo(text_[i]))
+    newNode =
+        (node->translations[text_[i]] = new Node{
+             .slice = {i, endPos_}, .parent = node, .suffixStartPos = leafs_});
 
   node->slice.second = std::make_shared<size_t>(node->slice.first + shift);
   node->suffixStartPos = std::nullopt;
@@ -55,26 +59,71 @@ SuffixTrie::splitArc(std::pair<Node *, size_t> position, size_t i) {
 
 std::pair<SuffixTrie::Node *, size_t>
 SuffixTrie::runBack(std::pair<Node *, size_t> position, size_t i) {
-  auto &[node, totalShift] = position;
+  auto &[node, _] = position;
+  size_t totalShift = 0;
   while (node->link == nullptr && node != root_) {
-    node = node->parent;
     totalShift += *node->slice.second - node->slice.first;
+    node = node->parent;
   }
 
   if (node->link != nullptr)
-    node = node->link;
+    node = node->link->translations[text_[i - totalShift]];
+  else if (node == root_)
+    --totalShift; // As we roll back for all suffix we should go forward by
+                  // suffix without 1 letter
 
-  node = node->translations[text_[i - totalShift]];
-  while(totalShift > *node->slice.second - node->slice.first) {
+  while (totalShift > *node->slice.second - node->slice.first) {
     totalShift -= *node->slice.second - node->slice.first;
     node = node->translations[text_[i - totalShift]];
   }
 
   size_t shift = 0;
-  while(totalShift > shift && text_[i - totalShift] == text_[node->slice.first + shift])
+  while (totalShift > shift &&
+         text_[i - totalShift + shift] == text_[node->slice.first + shift])
     shift++;
 
   return {node, shift};
+}
+
+std::pair<SuffixTrie::Node *, size_t>
+SuffixTrie::splitCascade(std::pair<Node *, size_t> position, size_t i) {
+  Node *lastSplitted = nullptr;
+  while (position.first != root_) {
+    auto [node, shift] = position;
+    splitArc(position, i);
+
+    if (lastSplitted != nullptr)
+      lastSplitted->link = node;
+    lastSplitted = node;
+
+    position.second =
+        *position.first->slice.second -
+        position.first->slice.first; // Point at last letter on an arc such as
+                                     // we split the arc by this letter
+    position = runBack(position, i);
+  }
+  splitArc({root_, 0}, i);
+  if (lastSplitted != nullptr)
+    lastSplitted->link = root_;
+
+  return {root_, 0};
+}
+
+void SuffixTrie::printTree(SuffixTrie::Node *node, size_t depth) {
+  std::cout << "Slice: {" << node->slice.first << " ; " << *node->slice.second
+            << "}";
+  if (node->link == nullptr)
+    std::cout << "; link: none" << std::endl;
+  else
+    std::cout << "; link: {" << node->link->slice.first << " ; "
+              << *node->link->slice.second << "}" << std::endl;
+
+  for (auto [letter, child] : node->translations) {
+    for (size_t i = 0; i < depth; ++i)
+      std::cout << "  ";
+    std::cout << letter << " : ";
+    printTree(child, depth + 1);
+  }
 }
 
 void SuffixTrie::createTrie() {
@@ -88,9 +137,16 @@ void SuffixTrie::createTrie() {
         ++shift;
         continue;
       } else {
-        auto [oldNode, newNode] = splitArc(activePoint, i);
-        // TODO: run back for smaller suffixes
+        activePoint = splitCascade(activePoint, i);
       }
+    } else {
+      if (node->canGoTo(text_[i]))
+        activePoint = {node->translations[text_[i]], 1};
+      else
+        activePoint = splitCascade(activePoint, i);
     }
+    std::cout << "-------------: " << i << " :---------------" << std::endl;
+    printTree(root_);
+    std::cout << "-------------:--------------------" << std::endl;
   }
 }
