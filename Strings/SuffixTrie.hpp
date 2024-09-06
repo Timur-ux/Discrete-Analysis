@@ -7,13 +7,6 @@
 #include <string>
 #include <vector>
 
-struct Occurence {
-  size_t count;
-  std::vector<size_t> beginPositions;
-
-  bool operator<=>(const Occurence &) const = default;
-};
-
 class SuffixTrie {
   /* Realization of Ukkonen's algorithm */
   private:
@@ -50,10 +43,13 @@ class SuffixTrie {
 
     void printTree(Node * node, size_t depth = 0);
 
+    // Find end nodes by depth search
+    std::vector<Node *> findEndNodes(Node * node) const;
+
   public:
     SuffixTrie(const std::string &text);
 
-    Occurence find(const std::string & pattern) const;
+    std::vector<size_t> find(const std::string & pattern) const;
 
     ~SuffixTrie();
 };

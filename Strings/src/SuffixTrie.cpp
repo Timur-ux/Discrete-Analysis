@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 
 #include "SuffixTrie.hpp"
 
@@ -149,4 +150,44 @@ void SuffixTrie::createTrie() {
     printTree(root_);
     std::cout << "-------------:--------------------" << std::endl;
   }
+}
+
+std::vector<size_t> SuffixTrie::find(const std::string &pattern) const {
+  std::pair<Node *, size_t> activePoint{root_, 0};
+  for (auto &c : pattern) {
+    auto &[node, shift] = activePoint;
+    if (shift < *node->slice.second - node->slice.first) {
+      if (text_[node->slice.first + shift] == c)
+        ++shift;
+      else
+        return {};
+    } else {
+      if (node->canGoTo(c)) {
+        node = node->translations[c];
+        shift = 1;
+      } else
+        return {};
+    }
+  }
+
+  std::vector<size_t> result;
+  std::vector<Node *> endNodes = findEndNodes(activePoint.first);
+  for(auto node : endNodes)
+    result.push_back(node->suffixStartPos.value());
+
+  return result;
+}
+
+std::vector<SuffixTrie::Node *> SuffixTrie::findEndNodes(SuffixTrie::Node * node) const {
+  if(node->suffixStartPos.has_value())
+    return {node};
+
+  std::vector<Node *> result;
+  for(auto & [_, child] : node->translations) {
+    std::vector<Node *> childEndNodes = findEndNodes(child);
+    for(auto endNode : childEndNodes)
+      result.push_back(endNode);
+  }
+
+  return result;
 }
