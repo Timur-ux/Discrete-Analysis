@@ -46,6 +46,7 @@ class SuffixTrie {
     // Find end nodes by depth search
     std::vector<Node *> findEndNodes(Node * node) const;
 
+    friend class SuffixArray;
   public:
     SuffixTrie(const std::string &text);
 
