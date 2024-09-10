@@ -33,11 +33,11 @@ SuffixArray::SuffixArray(const SuffixTrie &trie) : text_(trie.text_) {
   fillLCP(0, trie.text_.size() - 1, newLCP);
 
   LCP_ = std::move(newLCP);
-  printLCPStructure(0, trie.text_.size() - 1, trie.text_);
+  // printLCPStructure(0, trie.text_.size() - 1, trie.text_);
 }
 
 void SuffixArray::printLCPStructure(size_t L, size_t R,
-                                    const std::string &text) {
+                                    const std::string &text) const {
   size_t curLCP =
       ((R - L == 1) || (R + L) % 2 == 0 ? LCP_[R + L - 1] : LCP_[R + L - 2]);
   std::cout << "L = " << L << ", R = " << R << ", LCP = " << curLCP
@@ -71,7 +71,7 @@ size_t SuffixArray::fillLCP(size_t L, size_t R, std::vector<size_t> &newLCP) {
   }
 
   size_t result = std::min(fillLCP(L, (L + R) / 2, newLCP),
-                           fillLCP((L + R) / 2, R, newLCP));
+                          fillLCP((L + R) / 2, R, newLCP));
 
   if ((R - L) % 2 == 0)
     newLCP[L + R - 1] = result;
@@ -81,10 +81,10 @@ size_t SuffixArray::fillLCP(size_t L, size_t R, std::vector<size_t> &newLCP) {
   return result;
 }
 
-size_t SuffixArray::getLCPAt(size_t L, size_t R) {
+size_t SuffixArray::getLCPAt(size_t L, size_t R) const {
   if (R < L)
     std::swap(L, R);
-  if ((L + R) % 2 == 0)
+  if (R - L == 1 || (L + R) % 2 == 0)
     return LCP_[L + R - 1];
   else
     return LCP_[L + R - 2];
@@ -108,7 +108,7 @@ std::vector<size_t> SuffixArray::find(const std::string &pattern) const {
     if (std::max(l, r) >= pattern.size())
       break;
 
-    size_t mid = (l + r) / 2;
+    size_t mid = (L + R) / 2;
     if (l == r) {
       if (pattern[l] > text_[suffixIndexes_[mid] + l])
         L = mid;
@@ -116,6 +116,41 @@ std::vector<size_t> SuffixArray::find(const std::string &pattern) const {
         R = mid;
     } else if (l > r) {
       size_t k = getLCPAt(l, mid);
+      if (k == l) {
+        if (pattern[l] > text_[suffixIndexes_[mid] + l])
+          L = mid;
+        else {
+          R = mid;
+          r = k;
+        }
+      } else if (k < l) {
+        R = mid;
+        r = k;
+      } else
+        L = mid;
+    } else { // l < r
+      size_t k = getLCPAt(mid, r);
+      if (k == r) {
+        if (pattern[r] > text_[suffixIndexes_[mid] + r]) {
+          L = mid;
+          l = k;
+        } else 
+          R = mid;
+      } else if( k < r ) {
+        L = mid;
+        l = k;
+      } else 
+        R = mid;
     }
   }
+
+  size_t patternPos = (l == pattern.size() ? L : R);
+
+  result.push_back(suffixIndexes_[patternPos]);
+  for(long long i = patternPos - 1; i > 0 && getLCPAt(i, i + 1) >= pattern.size(); --i) 
+    result.push_back(suffixIndexes_[i]);
+  for(long long i = patternPos + 1; i < suffixIndexes_.size() && getLCPAt(i - 1, i) >= pattern.size(); ++i) 
+    result.push_back(suffixIndexes_[i]);
+
+  return result;
 };
