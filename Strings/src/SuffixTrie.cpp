@@ -146,9 +146,6 @@ void SuffixTrie::createTrie() {
       else
         activePoint = splitCascade(activePoint, i);
     }
-    std::cout << "-------------: " << i << " :---------------" << std::endl;
-    printTree(root_);
-    std::cout << "-------------:--------------------" << std::endl;
   }
 }
 
