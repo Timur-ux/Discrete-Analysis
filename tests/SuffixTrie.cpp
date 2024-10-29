@@ -16,6 +16,15 @@ TEST(StringsTestSuite, SuffixTrie) {
   SuffixTrie trie(text);
   std::vector<size_t> indexes = trie.find(pattern1.first);
   std::sort(all(indexes));
+  std::sort(all(pattern1.second));
+
+  std::cout << "given: ";
+  for(const auto & id : indexes)
+    std::cout << id << ' ';
+  std::cout << std::endl << "expected: ";
+  for(const auto & id : pattern1.second)
+    std::cout << id << ' ';
+  std::cout << std::endl;
 
   EXPECT_EQ(indexes.size(), pattern1.second.size());
   

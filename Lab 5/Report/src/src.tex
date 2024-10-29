@@ -1,313 +1,374 @@
 \section{Описание}
-Требуется реализовать алгоритм Ахо-Корасик. При построении построим обычный trie из паттернов, а потом проставим на нем ссылки наибольшего префикса и ссылки выхода. Терминальные вершины будем обозначать флагом.
+Требуется реализовать суффиксное дерево, для поиска минимального разреза можно исходную строку сконкатенировать с собой, тогда в ней будут все разрезы циклической исходной строки. По полученной строке построить суффиксное дерево. Для поиска минимального разреза можно использовать обход дерева в глубину,с подсчетом пройденного пути, как только пройденный путь станет равен или превысит длину исходной строки -- идем поиском в глубину от этой вершины поиском в глубину до первого листа, и возвращаем индекс начала суффикса, который в нем хранится. Во время обходов учитываем наличие терминатора строки и пропускаем узлы, содержащие его. Т.к. переходы храняться в std::map, а она хранит элементы по возрастанию ключа, то первый найденный подходящий по длине разрез и будет минимальным.
 
 \pagebreak
 
 \section{Исходный код}
 
 \begin{minted}{c++}
-#include <iostream>
-#include <sstream>
-#include <string>
-
-#ifndef AHO_KORASIK_HPP
-#define AHO_KORASIK_HPP
+#ifndef SUFFIX_TRIE_HPP_
+#define SUFFIX_TRIE_HPP_
 
 #include <map>
+#include <memory>
 #include <optional>
-#include <queue>
 #include <string>
 #include <vector>
 
-struct Matching {
-  size_t position;
-  size_t wordCount;
-  bool operator<=>(const Matching&) const = default;
-};
-
-
-struct occurence {
-  size_t count;
-  std::vector<Matching> matchings;
-  bool operator<=>(const occurence &) const = default;
-};
-
-using occurences = std::map<std::string, occurence>; 
-
-class AKTrie {
-  public:
-    AKTrie(std::vector<std::string> & patterns);
-    occurences find(std::string& s);
+class SuffixTrie {
+  /* Realization of Ukkonen's algorithm */
   private:
-    std::vector<std::string> patterns_;
+    const std::string & text_;
+    char sentinel;
+    std::shared_ptr<size_t> endPos_ = std::make_shared<size_t>(-1); // Index of last inserted letter in trie
+    size_t leafs_ = 0; // Used for detecting start of suffix
+    
     struct Node {
-      char letter;
-      std::map<char, size_t> translations;
-      size_t lp; // Longest prefix
-      std::optional<size_t> el; // Exit link
-                                
-      bool isTerm;
-      std::optional<size_t> patternIndex_;
+      std::pair<size_t, std::shared_ptr<size_t>> slice; // Slice of text on arc, right border may be changed from another places, so it ptr
+      std::map<char, Node*> translations;
+      Node * link = nullptr; // Suffix link
+      Node * parent = nullptr;
+      std::optional<size_t> suffixStartPos = std::nullopt; // Index of suffix ends here (nullopt for non-leaf nodes)
 
-      Node(char l) : letter(l), lp(0), isTerm(false) {}
+      bool canGoTo(const char &) const;
+      size_t getSliceSize() const;
     };
 
-    std::vector<Node> nodes;
-    size_t rootId;
+    struct ActivePoint : public std::pair<Node*, size_t> {
+      ActivePoint(Node * node, size_t shift) {
+        first = node;
+        second = shift;
+      }
 
-    size_t createNode(char letter = 0);
-    void insertPattern(std::string &p, size_t patternIndex);
-    void setLinks();
+      Node*& node() {
+        return first;
+      }
+      size_t & shift() {
+        return second;
+      }
+    };
+    Node * root_ = nullptr;
+    Node * lastNode_ = nullptr; // Last inserted node for splitted arc
+                                
+    // Split arc by given position, letter at text_[i] inserted as translation on new arc 
+    // Return node has created on arc or splitted node
+    Node * splitArc(ActivePoint position, size_t i);
 
-    /* 
-     * linking all childs of nodesToLink.front()
-     * and recursive calls itself. Aka breadth search 
+    // Split node by given position, letter at text_[i] inserted as new translation from node 
+    void splitNode(Node * node, size_t i);
+
+    // Split cascade of suffixes by letter at text_[i] by decreasing suffixes length
+    ActivePoint splitCascade(ActivePoint position, size_t i);
+
+    // Run back for smaller suffix by suffix link or run futher and set suffix link
+    // i is index of current char in text_
+    // Return position of smaller suffix
+    ActivePoint runBack(ActivePoint position, size_t i);
+
+    void deleteNode(Node * node);
+    void createTrie();
+
+    void printTree(Node * node, size_t depth = 0);
+
+    // Find end nodes by depth search
+    std::vector<Node *> findEndNodes(Node * node) const;
+
+    friend class SuffixArray;
+  public:
+    SuffixTrie(const std::string &text);
+
+    std::vector<size_t> find(const std::string & pattern) const;
+
+    /**
+     * @brief Find minimal slice in lexicographical sense with given size
+     *
+     * @param slizeSize -- size of slice
+     *
+     * @return index in text the slice begin with
      */
-    void setLinks_impl(std::queue<size_t>& nodesToLink); 
+    size_t findMinSlice(size_t sliceSize);
 
-    void processNodeIfTerminatorOrExitLink(occurences & storage, Node & node, size_t currentPosition, size_t &currentWordCount);
+    ~SuffixTrie();
 };
 
-#endif // !AHO_KORASIK_HPP
 
-#include <cstddef>
-#include <queue>
+#endif // !SUFFIX_TRIE_HPP_
 
-#define in(map, item) (map.find(item) != map.end())
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <optional>
+#include <vector>
 
-AKTrie::AKTrie(std::vector<std::string> &patterns) : patterns_(patterns) {
-  rootId = createNode();
-  for (size_t i = 0; i < patterns_.size(); ++i) {
-    insertPattern(patterns_[i], i);
-  }
-
-  setLinks();
+SuffixTrie::SuffixTrie(const std::string &text)
+    : text_(text), sentinel(text[text.size() - 1]) {
+  root_ = new Node{.slice = {0, std::make_shared<size_t>(0)}};
+  createTrie();
 }
 
-void AKTrie::insertPattern(std::string &p, size_t patternIndex) {
-  size_t curNodeId = rootId;
-  for (char &c : p) {
-    if (!in(nodes[curNodeId].translations, c)) {
-      nodes[curNodeId].translations[c] = createNode(c);
-    }
-    curNodeId = nodes[curNodeId].translations[c];
-  }
-
-  nodes[curNodeId].isTerm = true;
-  nodes[curNodeId].patternIndex_ = patternIndex;
-}
-
-void AKTrie::setLinks() {
-  nodes[rootId].lp = rootId;
-  std::queue<size_t> nodesToLink;
-
-  for (auto &[letter, id] : nodes[rootId].translations) {
-    nodes[id].lp = rootId;
-    nodesToLink.push(id);
-  }
-
-  setLinks_impl(nodesToLink);
-}
-
-void AKTrie::setLinks_impl(std::queue<size_t> &nodesToLink) {
-  if (nodesToLink.empty())
+void SuffixTrie::deleteNode(Node *node) {
+  if (node->translations.empty()) {
+    delete node;
     return;
-
-  size_t nodeId = nodesToLink.front();
-  nodesToLink.pop();
-
-  for (auto &[letter, id] : nodes[nodeId].translations) {
-    size_t linkedNode = nodes[nodeId].lp;
-    while (linkedNode != rootId &&
-           !in(nodes[linkedNode].translations, letter)) {
-      linkedNode = nodes[linkedNode].lp;
-    }
-
-    if (in(nodes[linkedNode].translations, letter)) {
-      nodes[id].lp = nodes[linkedNode].translations[letter];
-
-      if (nodes[nodes[id].lp].isTerm)
-        nodes[id].el = nodes[id].lp;
-      else if (nodes[nodes[id].lp].el.has_value()) {
-        size_t elFinal = nodes[nodes[id].lp].el.value();
-        while (!nodes[elFinal].isTerm)
-          elFinal = nodes[elFinal].el.value();
-
-        nodes[id].el = elFinal;
-      }
-    } else {
-      nodes[id].lp = rootId;
-    }
-
-    nodesToLink.push(id);
   }
 
-  setLinks_impl(nodesToLink);
+  for (auto &[_, child] : node->translations)
+    deleteNode(child);
+
+  delete node;
 }
 
-size_t AKTrie::createNode(char letter) {
-  nodes.push_back(Node(letter));
-  return nodes.size() - 1;
+SuffixTrie::~SuffixTrie() { deleteNode(root_); }
+
+bool SuffixTrie::Node::canGoTo(const char &c) const {
+  return translations.find(c) != translations.end();
 }
 
-void insertOccurence(occurences &storage, std::string &pattern, size_t position,
-                     size_t wordCount) {
-  if (in(storage, pattern)) {
-    ++storage[pattern].count;
-    storage[pattern].matchings.push_back({position, wordCount});
+size_t SuffixTrie::Node::getSliceSize() const {
+  return *slice.second - slice.first;
+}
+
+SuffixTrie::Node *SuffixTrie::splitArc(SuffixTrie::ActivePoint position,
+                                       size_t i) {
+  Node *newNode = new Node{
+      .slice = {position.node()->slice.first,
+                std::make_shared<size_t>(position.node()->slice.first +
+                                         position.shift())},
+      .translations = {{text_[position.node()->slice.first + position.shift()],
+                        position.node()}},
+      .parent = position.node()->parent,
+      .suffixStartPos = std::nullopt};
+  position.node()->parent = newNode;
+  position.node()->slice.first = position.node()->slice.first + position.shift();
+  newNode->parent->translations[text_[newNode->slice.first]] = newNode;
+
+  splitNode(newNode, i);
+
+  return newNode;
+}
+
+void SuffixTrie::splitNode(SuffixTrie::Node *node, size_t i) {
+  node->translations[text_[i]] = new Node{
+      .slice = {i, endPos_}, .parent = node, .suffixStartPos = leafs_++};
+}
+
+SuffixTrie::ActivePoint SuffixTrie::runBack(SuffixTrie::ActivePoint position,
+                                            size_t i) {
+  if (position.node() == root_) {
+    std::cerr << "ERROR: the try to run back from root_ has detected"
+              << std::endl;
+    exit(1);
+  }
+  if(position.node()->link != nullptr) {
+    return {position.node()->link, position.node()->link->getSliceSize()};
+  }
+
+  size_t totalShift = 0;
+  while (position.node() != root_ && position.node()->link == nullptr) {
+    totalShift += position.node()->getSliceSize();
+    position.node() = position.node()->parent;
+  }
+  if (position.node() == root_ && totalShift == 0) {
+    std::cerr << "ERROR: run back to root_ but total shift is 0" << std::endl;
+    exit(1);
+  }
+  if (position.node() == root_)
+    --totalShift;
+  else
+    position.node() = position.node()->link;
+
+  if (totalShift > 0) {
+    position.node() = position.node()->translations[text_[i - totalShift]];
+    while (totalShift > position.node()->getSliceSize()) {
+      totalShift -= position.node()->getSliceSize();
+      position.node() = position.node()->translations[text_[i - totalShift]];
+    }
+  }
+
+  return {position.node(), totalShift};
+}
+
+SuffixTrie::ActivePoint
+SuffixTrie::splitCascade(SuffixTrie::ActivePoint position, size_t i) {
+  if (position.shift() > position.node()->getSliceSize()) {
+    std::cerr << "ERROR: Shift bigger than slice size"
+              << std::endl; // For testing purposes
+    exit(1);
+  }
+  Node *lastSplitted = nullptr;
+  while (
+      position.node() != root_ &&
+      ((position.shift() == position.node()->getSliceSize() &&
+        !position.node()->canGoTo(text_[i])) ||
+       (position.shift() < position.node()->getSliceSize() &&
+        text_[position.node()->slice.first + position.shift()] != text_[i]))) {
+
+    if (position.shift() ==
+        position.node()->getSliceSize()) { // We at node, not at arc. So we need
+                                           // add new translation to node
+      splitNode(position.node(), i);
+      if (lastSplitted != nullptr)
+        lastSplitted->link = position.node();
+      lastSplitted = position.node();
+    } else { // We at arc, so we split arc.
+      position.first = splitArc(position, i);
+      position.second = position.node()->getSliceSize();
+
+      if (lastSplitted != nullptr)
+        lastSplitted->link = position.node();
+      lastSplitted = position.node();
+    }
+    position = runBack(position, i);
+  }
+
+  if (position.node() == root_ && !position.node()->canGoTo(text_[i]))
+    splitNode(position.node(), i);
+  else if (position.shift() == position.node()->getSliceSize() &&
+           position.node()->canGoTo(text_[i])) {
+    position.first = position.node()->translations[text_[i]];
+    position.second = 1;
+  } else if (position.shift() < position.node()->getSliceSize() &&
+        text_[position.node()->slice.first + position.shift()] != text_[i]) {
+    ++position.shift();
   } else {
-    storage[pattern] = {1, {{position, wordCount}}};
+    std::cerr << "ERROR: undefined case in splitCascade" << std::endl;
+    exit(1);
+  }
+
+  return position;
+}
+
+void SuffixTrie::printTree(SuffixTrie::Node *node, size_t depth) {
+  std::cout << text_.substr(node->slice.first,
+                            *node->slice.second - node->slice.first);
+  if (node->link == nullptr)
+    std::cout << "; link: none" << std::endl;
+  else
+    std::cout << "; link: "
+              << text_.substr(node->link->slice.first,
+                              *node->link->slice.second -
+                                  node->link->slice.first)
+              << std::endl;
+
+  for (auto [letter, child] : node->translations) {
+    if (letter != text_[child->slice.first])
+      std::cout << "ERROR: translation letter don't correspond real slice"
+                << std::endl;
+    for (size_t i = 0; i < depth; ++i)
+      std::cout << "  ";
+    std::cout << letter << " : ";
+    printTree(child, depth + 1);
   }
 }
 
-void AKTrie::processNodeIfTerminatorOrExitLink(occurences &storage, Node &node,
-                                               size_t currentPosition,
-                                               size_t &currentWordCount) {
-  std::string pattern = "";
-  if (node.isTerm) {
-    pattern = patterns_[node.patternIndex_.value()];
-  } else if (node.el.has_value()) {
-    pattern =
-        patterns_[nodes[node.el.value()].patternIndex_.value()];
-  }
-  if (pattern != "") {
-    insertOccurence(storage, pattern, currentPosition + 1 - pattern.size(),
-                    currentWordCount);
-  }
-}
-
-occurences AKTrie::find(std::string &s) {
-  occurences result{};
-  size_t wordCount = 1;
-
-  Node *currentNode = &nodes[rootId];
-  for (size_t i = 0; i < s.size(); ++i) {
-    if(s[i] == ' ')
-      ++wordCount;
-    while (currentNode != &nodes[rootId] &&
-           !in(currentNode->translations, s[i]))
-      currentNode = &nodes[currentNode->lp];
-
-    if (in(currentNode->translations, s[i])) {
-      currentNode = &nodes[currentNode->translations[s[i]]];
-      processNodeIfTerminatorOrExitLink(result, *currentNode, i, wordCount);
+void SuffixTrie::createTrie() {
+  ActivePoint ap = {root_, 0};
+  for (size_t i = 0; i < text_.size(); ++i) {
+    ++(*endPos_);
+    if (ap.shift() < ap.node()->getSliceSize()) {
+      if (text_[ap.node()->slice.first + ap.shift()] == text_[i])
+        ++ap.shift();
+      else
+        ap = splitCascade(ap, i);
+    } else {
+      if (ap.node()->canGoTo(text_[i]))
+        ap = {ap.node()->translations[text_[i]], 1};
+      else
+        ap = splitCascade(ap, i);
     }
   }
+}
+
+std::vector<size_t> SuffixTrie::find(const std::string &pattern) const {
+  std::pair<Node *, size_t> activePoint{root_, 0};
+  for (auto &c : pattern) {
+    auto &[node, shift] = activePoint;
+    if (shift < *node->slice.second - node->slice.first) {
+      if (text_[node->slice.first + shift] == c)
+        ++shift;
+      else
+        return {};
+    } else {
+      if (node->canGoTo(c)) {
+        node = node->translations[c];
+        shift = 1;
+      } else
+        return {};
+    }
+  }
+
+  std::vector<size_t> result;
+  std::vector<Node *> endNodes = findEndNodes(activePoint.first);
+  for (auto node : endNodes)
+    result.push_back(node->suffixStartPos.value());
 
   return result;
 }
 
+std::vector<SuffixTrie::Node *>
+SuffixTrie::findEndNodes(SuffixTrie::Node *node) const {
+  if (node->suffixStartPos.has_value())
+    return {node};
+
+  std::vector<Node *> result;
+  for (auto &[_, child] : node->translations) {
+    std::vector<Node *> childEndNodes = findEndNodes(child);
+    for (auto endNode : childEndNodes)
+      result.push_back(endNode);
+  }
+
+  return result;
+}
+size_t SuffixTrie::findMinSlice(size_t sliceSize) {
+  Node *currentNode = root_;
+  while (sliceSize > *currentNode->slice.second - currentNode->slice.first) {
+    sliceSize -= *currentNode->slice.second - currentNode->slice.first;
+    auto translation = std::begin(currentNode->translations);
+    if (translation->first == sentinel)
+      ++translation;
+    currentNode = translation->second;
+  }
+
+  while (currentNode->translations.size() > 0) {
+    auto translation = std::begin(currentNode->translations);
+    if (translation->first == sentinel && currentNode->translations.size() > 1)
+      ++translation;
+    currentNode = translation->second;
+  }
+
+  return currentNode->suffixStartPos.value();
+}
 
 #include <iostream>
-#include <sstream>
-#include <string>
 
-void printOccurrences(occurences &storage) {
-  std::cout << "OCCURENCES: " << std::endl;
-  for (auto &item : storage) {
-    std::cout << item.first << " : count = " << item.second.count << ",";
-    for (auto &[pos, wordCount] : item.second.matchings) {
-      std::cout << "{ Index = " << pos << ", word count = " << wordCount
-                << "}; ";
-    }
-    std::cout << std::endl;
-  }
-}
-
-struct Symbol {
-  std::string word;
-  size_t lineCount;
-  size_t wordCount;
-};
-
-void checkMask(std::vector<std::string> &patterns,
-               std::vector<Symbol> &words,
-               occurences &matchings) {
-  size_t shift = 0;
-  while (shift < patterns.size() && patterns[shift] == "?")
-    ++shift;
-  if(shift == patterns.size()) {
-    for(size_t i = 0; i <= words.size() - shift; ++i) {
-      std::cout << words[i].lineCount << ", " << words[i].wordCount << '\n';
-    }
-    return;
-  }
-
-  for (auto &[pos, cnt] : matchings[patterns[shift]].matchings) {
-    if (cnt <= shift) // skip if pattern mask's left border less than zero
-      continue;
-    bool isGoodMask = true;
-    for (size_t i = shift; i < patterns.size(); ++i) {
-        if ((cnt - 1 + i - shift >= words.size()) || (patterns[i] != "?" && words[cnt - 1 + i - shift].word != patterns[i])) {
-          isGoodMask = false;
-          break;
-      }
-    }
-    if (isGoodMask)
-      std::cout << words[cnt - 1 - shift].lineCount << ", "
-                << words[cnt - 1 - shift].wordCount << '\n';
-  }
-}
-
-void toLower(std::string &s) {
-  for(char & c : s)
-    c = tolower(c);
-}
 
 int main() {
   std::ios::sync_with_stdio(false);
   std::cin.tie(0);
   std::cout.tie(0);
+  
+  std::string s;
+  std::getline(std::cin, s);
 
-  std::vector<std::string> patterns;
-  std::vector<std::vector<std::string>> patternsWords; // words pattern consist of
-  std::string text, word, line;
+  size_t sSize = s.size();
+  s += s;
+  s += '$';
+  
+  SuffixTrie trie(s);
 
-  std::getline(std::cin, line);
-  toLower(line);
-  std::stringstream ss(line);
+  size_t slicePos = trie.findMinSlice(sSize);
 
-  while (ss >> word)
-    patterns.push_back(word);
+  std::cout << s.substr(slicePos, sSize) << std::endl;
 
-  std::vector<Symbol> words;
-  size_t lineCount = 0;
-  while (std::getline(std::cin, line)) {
-    toLower(line);
-    ++lineCount;
-
-    std::stringstream ss(line);
-    size_t wordCount = 0;
-
-    while (ss >> word) {
-      text += word + " ";
-      ++wordCount;
-      words.push_back({word, lineCount, wordCount});
-    }
-  }
-
-
-  if(patterns.size() > words.size() || patterns.size() == 0) {
-    return 0;
-  }
-
-  AKTrie akTrie(patterns);
-  occurences matchings = akTrie.find(text);
-
-  checkMask(patterns, words, matchings);
   return 0;
 }
+
 \end{minted}
 
 \section{Консоль}
 \begin{alltt}
 raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis$ ./out/Debug/main
-cat ? dog
-cat
-cat
-dog
-dog
-1, 1
-2, 1
+xabcd
+abcdx
 \end{alltt}
 \pagebreak

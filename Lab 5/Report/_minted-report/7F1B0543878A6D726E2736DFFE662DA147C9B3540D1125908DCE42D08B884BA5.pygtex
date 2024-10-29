@@ -1,0 +1,359 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+cp}{\PYGZsh{}ifndef SUFFIX\PYGZus{}TRIE\PYGZus{}HPP\PYGZus{}}
+\PYG{c+cp}{\PYGZsh{}define SUFFIX\PYGZus{}TRIE\PYGZus{}HPP\PYGZus{}}
+
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}map\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}memory\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}optional\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}string\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}vector\PYGZgt{}}
+
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{SuffixTrie}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{c+cm}{/* Realization of Ukkonen\PYGZsq{}s algorithm */}
+\PYG{+w}{  }\PYG{k}{private}\PYG{o}{:}
+\PYG{+w}{    }\PYG{k}{const}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{string}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k+kt}{char}\PYG{+w}{ }\PYG{n}{sentinel}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{endPos\PYGZus{}}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{l+m+mi}{\PYGZhy{}1}\PYG{p}{);}\PYG{+w}{ }\PYG{c+c1}{// Index of last inserted letter in trie}
+\PYG{+w}{    }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{leafs\PYGZus{}}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{;}\PYG{+w}{ }\PYG{c+c1}{// Used for detecting start of suffix}
+
+\PYG{+w}{    }\PYG{k}{struct}\PYG{+w}{ }\PYG{n+nc}{Node}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n}{std}\PYG{o}{::}\PYG{n}{pair}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{shared\PYGZus{}ptr}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}\PYGZgt{}}\PYG{+w}{ }\PYG{n}{slice}\PYG{p}{;}\PYG{+w}{ }\PYG{c+c1}{// Slice of text on arc, right border may be changed from another places, so it ptr}
+\PYG{+w}{      }\PYG{n}{std}\PYG{o}{::}\PYG{n}{map}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{char}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{Node}\PYG{o}{*\PYGZgt{}}\PYG{+w}{ }\PYG{n}{translations}\PYG{p}{;}
+\PYG{+w}{      }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{link}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{;}\PYG{+w}{ }\PYG{c+c1}{// Suffix link}
+\PYG{+w}{      }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{parent}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{;}
+\PYG{+w}{      }\PYG{n}{std}\PYG{o}{::}\PYG{n}{optional}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{suffixStartPos}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{nullopt}\PYG{p}{;}\PYG{+w}{ }\PYG{c+c1}{// Index of suffix ends here (nullopt for non\PYGZhy{}leaf nodes)}
+
+\PYG{+w}{      }\PYG{k+kt}{bool}\PYG{+w}{ }\PYG{n+nf}{canGoTo}\PYG{p}{(}\PYG{k}{const}\PYG{+w}{ }\PYG{k+kt}{char}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{p}{)}\PYG{+w}{ }\PYG{k}{const}\PYG{p}{;}
+\PYG{+w}{      }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n+nf}{getSliceSize}\PYG{p}{()}\PYG{+w}{ }\PYG{k}{const}\PYG{p}{;}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{};}
+
+\PYG{+w}{    }\PYG{k}{struct}\PYG{+w}{ }\PYG{n+nc}{ActivePoint}\PYG{+w}{ }\PYG{o}{:}\PYG{+w}{ }\PYG{k}{public}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{pair}\PYG{o}{\PYGZlt{}}\PYG{n}{Node}\PYG{o}{*}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n}{ActivePoint}\PYG{p}{(}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{shift}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n}{first}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{;}
+\PYG{+w}{        }\PYG{n}{second}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{shift}\PYG{p}{;}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{n}{Node}\PYG{o}{*\PYGZam{}}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{first}\PYG{p}{;}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{+w}{ }\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{second}\PYG{p}{;}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{};}
+\PYG{+w}{    }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{lastNode\PYGZus{}}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{;}\PYG{+w}{ }\PYG{c+c1}{// Last inserted node for splitted arc}
+
+\PYG{+w}{    }\PYG{c+c1}{// Split arc by given position, letter at text\PYGZus{}[i] inserted as translation on new arc}
+\PYG{+w}{    }\PYG{c+c1}{// Return node has created on arc or splitted node}
+\PYG{+w}{    }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n+nf}{splitArc}\PYG{p}{(}\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+
+\PYG{+w}{    }\PYG{c+c1}{// Split node by given position, letter at text\PYGZus{}[i] inserted as new translation from node}
+\PYG{+w}{    }\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n+nf}{splitNode}\PYG{p}{(}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+
+\PYG{+w}{    }\PYG{c+c1}{// Split cascade of suffixes by letter at text\PYGZus{}[i] by decreasing suffixes length}
+\PYG{+w}{    }\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n+nf}{splitCascade}\PYG{p}{(}\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+
+\PYG{+w}{    }\PYG{c+c1}{// Run back for smaller suffix by suffix link or run futher and set suffix link}
+\PYG{+w}{    }\PYG{c+c1}{// i is index of current char in text\PYGZus{}}
+\PYG{+w}{    }\PYG{c+c1}{// Return position of smaller suffix}
+\PYG{+w}{    }\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n+nf}{runBack}\PYG{p}{(}\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+
+\PYG{+w}{    }\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n+nf}{deleteNode}\PYG{p}{(}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{);}
+\PYG{+w}{    }\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n+nf}{createTrie}\PYG{p}{();}
+
+\PYG{+w}{    }\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n+nf}{printTree}\PYG{p}{(}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{depth}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{);}
+
+\PYG{+w}{    }\PYG{c+c1}{// Find end nodes by depth search}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*\PYGZgt{}}\PYG{+w}{ }\PYG{n}{findEndNodes}\PYG{p}{(}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{)}\PYG{+w}{ }\PYG{k}{const}\PYG{p}{;}
+
+\PYG{+w}{    }\PYG{k}{friend}\PYG{+w}{ }\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{SuffixArray}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{public}\PYG{o}{:}
+\PYG{+w}{    }\PYG{n}{SuffixTrie}\PYG{p}{(}\PYG{k}{const}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{string}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{n}{text}\PYG{p}{);}
+
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{find}\PYG{p}{(}\PYG{k}{const}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{string}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{+w}{ }\PYG{n}{pattern}\PYG{p}{)}\PYG{+w}{ }\PYG{k}{const}\PYG{p}{;}
+
+\PYG{+w}{    }\PYG{c+cm}{/**}
+\PYG{c+cm}{     * @brief Find minimal slice in lexicographical sense with given size}
+\PYG{c+cm}{     *}
+\PYG{c+cm}{     * @param slizeSize \PYGZhy{}\PYGZhy{} size of slice}
+\PYG{c+cm}{     *}
+\PYG{c+cm}{     * @return index in text the slice begin with}
+\PYG{c+cm}{     */}
+\PYG{+w}{    }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n+nf}{findMinSlice}\PYG{p}{(}\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{sliceSize}\PYG{p}{);}
+
+\PYG{+w}{    }\PYG{o}{\PYGZti{}}\PYG{n}{SuffixTrie}\PYG{p}{();}
+\PYG{p}{\PYGZcb{};}
+
+
+\PYG{c+cp}{\PYGZsh{}endif }\PYG{c+c1}{// !SUFFIX\PYGZus{}TRIE\PYGZus{}HPP\PYGZus{}}
+
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}cstdlib\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}iostream\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}memory\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}optional\PYGZgt{}}
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}vector\PYGZgt{}}
+
+\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{SuffixTrie}\PYG{p}{(}\PYG{k}{const}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{string}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{n}{text}\PYG{p}{)}
+\PYG{+w}{    }\PYG{o}{:}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{(}\PYG{n}{text}\PYG{p}{),}\PYG{+w}{ }\PYG{n}{sentinel}\PYG{p}{(}\PYG{n}{text}\PYG{p}{[}\PYG{n}{text}\PYG{p}{.}\PYG{n}{size}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{])}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{root\PYGZus{}}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n}{Node}\PYG{p}{\PYGZob{}.}\PYG{n}{slice}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{l+m+mi}{0}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)\PYGZcb{}\PYGZcb{};}
+\PYG{+w}{  }\PYG{n}{createTrie}\PYG{p}{();}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{deleteNode}\PYG{p}{(}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{node}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{.}\PYG{n}{empty}\PYG{p}{())}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{delete}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k}{return}\PYG{p}{;}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k}{auto}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{p}{[}\PYG{n}{\PYGZus{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{child}\PYG{p}{]}\PYG{+w}{ }\PYG{o}{:}\PYG{+w}{ }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{)}
+\PYG{+w}{    }\PYG{n}{deleteNode}\PYG{p}{(}\PYG{n}{child}\PYG{p}{);}
+
+\PYG{+w}{  }\PYG{k}{delete}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{SuffixTrie}\PYG{o}{::\PYGZti{}}\PYG{n}{SuffixTrie}\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n}{deleteNode}\PYG{p}{(}\PYG{n}{root\PYGZus{}}\PYG{p}{);}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kt}{bool}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{Node}\PYG{o}{::}\PYG{n}{canGoTo}\PYG{p}{(}\PYG{k}{const}\PYG{+w}{ }\PYG{k+kt}{char}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{n}{c}\PYG{p}{)}\PYG{+w}{ }\PYG{k}{const}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{translations}\PYG{p}{.}\PYG{n}{find}\PYG{p}{(}\PYG{n}{c}\PYG{p}{)}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{n}{translations}\PYG{p}{.}\PYG{n}{end}\PYG{p}{();}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{Node}\PYG{o}{::}\PYG{n}{getSliceSize}\PYG{p}{()}\PYG{+w}{ }\PYG{k}{const}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{splitArc}\PYG{p}{(}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{,}
+\PYG{+w}{                                       }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{newNode}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n}{Node}\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{p}{.}\PYG{n}{slice}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{,}
+\PYG{+w}{                }\PYG{n}{std}\PYG{o}{::}\PYG{n}{make\PYGZus{}shared}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{+}
+\PYG{+w}{                                         }\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{())\PYGZcb{},}
+\PYG{+w}{      }\PYG{p}{.}\PYG{n}{translations}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}\PYGZob{}}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{+}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()],}
+\PYG{+w}{                        }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()\PYGZcb{}\PYGZcb{},}
+\PYG{+w}{      }\PYG{p}{.}\PYG{n}{parent}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{parent}\PYG{p}{,}
+\PYG{+w}{      }\PYG{p}{.}\PYG{n}{suffixStartPos}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{nullopt}\PYG{p}{\PYGZcb{};}
+\PYG{+w}{  }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{parent}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{newNode}\PYG{p}{;}
+\PYG{+w}{  }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{+}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{();}
+\PYG{+w}{  }\PYG{n}{newNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{parent}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{[}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{newNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{]]}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{newNode}\PYG{p}{;}
+
+\PYG{+w}{  }\PYG{n}{splitNode}\PYG{p}{(}\PYG{n}{newNode}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{newNode}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{splitNode}\PYG{p}{(}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{node}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{[}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]]}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n}{Node}\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{p}{.}\PYG{n}{slice}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n}{i}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{endPos\PYGZus{}}\PYG{p}{\PYGZcb{},}\PYG{+w}{ }\PYG{p}{.}\PYG{n}{parent}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{node}\PYG{p}{,}\PYG{+w}{ }\PYG{p}{.}\PYG{n}{suffixStartPos}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{leafs\PYGZus{}}\PYG{o}{++}\PYG{p}{\PYGZcb{};}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{runBack}\PYG{p}{(}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{,}
+\PYG{+w}{                                            }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cerr}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ERROR: the try to run back from root\PYGZus{} has detected\PYGZdq{}}
+\PYG{+w}{              }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{exit}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{);}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{k}{if}\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{return}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{()\PYGZcb{};}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{totalShift}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{while}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{totalShift}\PYG{+w}{ }\PYG{o}{+=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{();}
+\PYG{+w}{    }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{parent}\PYG{p}{;}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}\PYG{+w}{ }\PYG{n}{totalShift}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cerr}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ERROR: run back to root\PYGZus{} but total shift is 0\PYGZdq{}}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{exit}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{);}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{p}{)}
+\PYG{+w}{    }\PYG{o}{\PYGZhy{}\PYGZhy{}}\PYG{n}{totalShift}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{else}
+\PYG{+w}{    }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{p}{;}
+
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{totalShift}\PYG{+w}{ }\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{[}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{n}{totalShift}\PYG{p}{]];}
+\PYG{+w}{    }\PYG{k}{while}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{totalShift}\PYG{+w}{ }\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{())}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n}{totalShift}\PYG{+w}{ }\PYG{o}{\PYGZhy{}=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{();}
+\PYG{+w}{      }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{[}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{n}{totalShift}\PYG{p}{]];}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{(),}\PYG{+w}{ }\PYG{n}{totalShift}\PYG{p}{\PYGZcb{};}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{ActivePoint}
+\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{splitCascade}\PYG{p}{(}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{())}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cerr}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ERROR: Shift bigger than slice size\PYGZdq{}}
+\PYG{+w}{              }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}\PYG{+w}{ }\PYG{c+c1}{// For testing purposes}
+\PYG{+w}{    }\PYG{n}{exit}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{);}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{lastSplitted}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{while}\PYG{+w}{ }\PYG{p}{(}
+\PYG{+w}{      }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}
+\PYG{+w}{      }\PYG{p}{((}\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}
+\PYG{+w}{        }\PYG{o}{!}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{canGoTo}\PYG{p}{(}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]))}\PYG{+w}{ }\PYG{o}{||}
+\PYG{+w}{       }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZlt{}}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}
+\PYG{+w}{        }\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{+}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()]}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{])))}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+
+\PYG{+w}{    }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{==}
+\PYG{+w}{        }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{())}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{c+c1}{// We at node, not at arc. So we need}
+\PYG{+w}{                                           }\PYG{c+c1}{// add new translation to node}
+\PYG{+w}{      }\PYG{n}{splitNode}\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{(),}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+\PYG{+w}{      }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{lastSplitted}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{)}
+\PYG{+w}{        }\PYG{n}{lastSplitted}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{();}
+\PYG{+w}{      }\PYG{n}{lastSplitted}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{();}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{k}{else}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{c+c1}{// We at arc, so we split arc.}
+\PYG{+w}{      }\PYG{n}{position}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{splitArc}\PYG{p}{(}\PYG{n}{position}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+\PYG{+w}{      }\PYG{n}{position}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{();}
+
+\PYG{+w}{      }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{lastSplitted}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{)}
+\PYG{+w}{        }\PYG{n}{lastSplitted}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{();}
+\PYG{+w}{      }\PYG{n}{lastSplitted}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{();}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{n}{position}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{runBack}\PYG{p}{(}\PYG{n}{position}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}\PYG{+w}{ }\PYG{o}{!}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{canGoTo}\PYG{p}{(}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]))}
+\PYG{+w}{    }\PYG{n}{splitNode}\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{(),}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+\PYG{+w}{  }\PYG{k}{else}\PYG{+w}{ }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}
+\PYG{+w}{           }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{canGoTo}\PYG{p}{(}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]))}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{position}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{[}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]];}
+\PYG{+w}{    }\PYG{n}{position}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{k}{else}\PYG{+w}{ }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZlt{}}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}
+\PYG{+w}{        }\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{position}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{+}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()]}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{])}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{o}{++}\PYG{n}{position}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{();}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{k}{else}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cerr}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ERROR: undefined case in splitCascade\PYGZdq{}}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{exit}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{);}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{position}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{printTree}\PYG{p}{(}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{node}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{depth}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{.}\PYG{n}{substr}\PYG{p}{(}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{,}
+\PYG{+w}{                            }\PYG{o}{*}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{);}
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{k}{nullptr}\PYG{p}{)}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}; link: none\PYGZdq{}}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{else}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}; link: \PYGZdq{}}
+\PYG{+w}{              }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{.}\PYG{n}{substr}\PYG{p}{(}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{,}
+\PYG{+w}{                              }\PYG{o}{*}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}
+\PYG{+w}{                                  }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{link}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{)}
+\PYG{+w}{              }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}
+
+\PYG{+w}{  }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k}{auto}\PYG{+w}{ }\PYG{p}{[}\PYG{n}{letter}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{child}\PYG{p}{]}\PYG{+w}{ }\PYG{o}{:}\PYG{+w}{ }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{letter}\PYG{+w}{ }\PYG{o}{!=}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{child}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{])}
+\PYG{+w}{      }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ERROR: translation letter don\PYGZsq{}t correspond real slice\PYGZdq{}}
+\PYG{+w}{                }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{;}\PYG{+w}{ }\PYG{n}{i}\PYG{+w}{ }\PYG{o}{\PYGZlt{}}\PYG{+w}{ }\PYG{n}{depth}\PYG{p}{;}\PYG{+w}{ }\PYG{o}{++}\PYG{n}{i}\PYG{p}{)}
+\PYG{+w}{      }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}  \PYGZdq{}}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{letter}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{} : \PYGZdq{}}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{printTree}\PYG{p}{(}\PYG{n}{child}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{depth}\PYG{+w}{ }\PYG{o}{+}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{);}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kt}{void}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{createTrie}\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{ActivePoint}\PYG{+w}{ }\PYG{n}{ap}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n}{root\PYGZus{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{\PYGZcb{};}
+\PYG{+w}{  }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{i}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{;}\PYG{+w}{ }\PYG{n}{i}\PYG{+w}{ }\PYG{o}{\PYGZlt{}}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{.}\PYG{n}{size}\PYG{p}{();}\PYG{+w}{ }\PYG{o}{++}\PYG{n}{i}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{o}{++}\PYG{p}{(}\PYG{o}{*}\PYG{n}{endPos\PYGZus{}}\PYG{p}{);}
+\PYG{+w}{    }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{ap}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZlt{}}\PYG{+w}{ }\PYG{n}{ap}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{getSliceSize}\PYG{p}{())}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{ap}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{+}\PYG{+w}{ }\PYG{n}{ap}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{()]}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{])}
+\PYG{+w}{        }\PYG{o}{++}\PYG{n}{ap}\PYG{p}{.}\PYG{n}{shift}\PYG{p}{();}
+\PYG{+w}{      }\PYG{k}{else}
+\PYG{+w}{        }\PYG{n}{ap}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{splitCascade}\PYG{p}{(}\PYG{n}{ap}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{k}{else}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{ap}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{canGoTo}\PYG{p}{(}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]))}
+\PYG{+w}{        }\PYG{n}{ap}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n}{ap}\PYG{p}{.}\PYG{n}{node}\PYG{p}{()}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{[}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]],}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{\PYGZcb{};}
+\PYG{+w}{      }\PYG{k}{else}
+\PYG{+w}{        }\PYG{n}{ap}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{splitCascade}\PYG{p}{(}\PYG{n}{ap}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{i}\PYG{p}{);}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{find}\PYG{p}{(}\PYG{k}{const}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{string}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{n}{pattern}\PYG{p}{)}\PYG{+w}{ }\PYG{k}{const}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{pair}\PYG{o}{\PYGZlt{}}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{activePoint}\PYG{p}{\PYGZob{}}\PYG{n}{root\PYGZus{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{\PYGZcb{};}
+\PYG{+w}{  }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k}{auto}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{n}{c}\PYG{+w}{ }\PYG{o}{:}\PYG{+w}{ }\PYG{n}{pattern}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{auto}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{p}{[}\PYG{n}{node}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{shift}\PYG{p}{]}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{activePoint}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{shift}\PYG{+w}{ }\PYG{o}{\PYGZlt{}}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{text\PYGZus{}}\PYG{p}{[}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{+}\PYG{+w}{ }\PYG{n}{shift}\PYG{p}{]}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{c}\PYG{p}{)}
+\PYG{+w}{        }\PYG{o}{++}\PYG{n}{shift}\PYG{p}{;}
+\PYG{+w}{      }\PYG{k}{else}
+\PYG{+w}{        }\PYG{k}{return}\PYG{+w}{ }\PYG{p}{\PYGZob{}\PYGZcb{};}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{k}{else}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{canGoTo}\PYG{p}{(}\PYG{n}{c}\PYG{p}{))}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n}{node}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{[}\PYG{n}{c}\PYG{p}{];}
+\PYG{+w}{        }\PYG{n}{shift}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{k}{else}
+\PYG{+w}{        }\PYG{k}{return}\PYG{+w}{ }\PYG{p}{\PYGZob{}\PYGZcb{};}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{k+kt}{size\PYGZus{}t}\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{result}\PYG{p}{;}
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*\PYGZgt{}}\PYG{+w}{ }\PYG{n}{endNodes}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{findEndNodes}\PYG{p}{(}\PYG{n}{activePoint}\PYG{p}{.}\PYG{n}{first}\PYG{p}{);}
+\PYG{+w}{  }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k}{auto}\PYG{+w}{ }\PYG{n}{node}\PYG{+w}{ }\PYG{o}{:}\PYG{+w}{ }\PYG{n}{endNodes}\PYG{p}{)}
+\PYG{+w}{    }\PYG{n}{result}\PYG{p}{.}\PYG{n}{push\PYGZus{}back}\PYG{p}{(}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{suffixStartPos}\PYG{p}{.}\PYG{n}{value}\PYG{p}{());}
+
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{result}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*\PYGZgt{}}
+\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{findEndNodes}\PYG{p}{(}\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{node}\PYG{p}{)}\PYG{+w}{ }\PYG{k}{const}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{suffixStartPos}\PYG{p}{.}\PYG{n}{has\PYGZus{}value}\PYG{p}{())}
+\PYG{+w}{    }\PYG{k}{return}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n}{node}\PYG{p}{\PYGZcb{};}
+
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*\PYGZgt{}}\PYG{+w}{ }\PYG{n}{result}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k}{auto}\PYG{+w}{ }\PYG{o}{\PYGZam{}}\PYG{p}{[}\PYG{n}{\PYGZus{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{child}\PYG{p}{]}\PYG{+w}{ }\PYG{o}{:}\PYG{+w}{ }\PYG{n}{node}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{std}\PYG{o}{::}\PYG{n}{vector}\PYG{o}{\PYGZlt{}}\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*\PYGZgt{}}\PYG{+w}{ }\PYG{n}{childEndNodes}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{findEndNodes}\PYG{p}{(}\PYG{n}{child}\PYG{p}{);}
+\PYG{+w}{    }\PYG{k}{for}\PYG{+w}{ }\PYG{p}{(}\PYG{k}{auto}\PYG{+w}{ }\PYG{n}{endNode}\PYG{+w}{ }\PYG{o}{:}\PYG{+w}{ }\PYG{n}{childEndNodes}\PYG{p}{)}
+\PYG{+w}{      }\PYG{n}{result}\PYG{p}{.}\PYG{n}{push\PYGZus{}back}\PYG{p}{(}\PYG{n}{endNode}\PYG{p}{);}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{result}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{SuffixTrie}\PYG{o}{::}\PYG{n}{findMinSlice}\PYG{p}{(}\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{sliceSize}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{Node}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{currentNode}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{root\PYGZus{}}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{while}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{sliceSize}\PYG{+w}{ }\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{sliceSize}\PYG{+w}{ }\PYG{o}{\PYGZhy{}=}\PYG{+w}{ }\PYG{o}{*}\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{second}\PYG{+w}{ }\PYG{o}{\PYGZhy{}}\PYG{+w}{ }\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{slice}\PYG{p}{.}\PYG{n}{first}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k}{auto}\PYG{+w}{ }\PYG{n}{translation}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{begin}\PYG{p}{(}\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{);}
+\PYG{+w}{    }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{translation}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{sentinel}\PYG{p}{)}
+\PYG{+w}{      }\PYG{o}{++}\PYG{n}{translation}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{currentNode}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{translation}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{second}\PYG{p}{;}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{while}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{.}\PYG{n}{size}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{auto}\PYG{+w}{ }\PYG{n}{translation}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{begin}\PYG{p}{(}\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{);}
+\PYG{+w}{    }\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{translation}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{first}\PYG{+w}{ }\PYG{o}{==}\PYG{+w}{ }\PYG{n}{sentinel}\PYG{+w}{ }\PYG{o}{\PYGZam{}\PYGZam{}}\PYG{+w}{ }\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{translations}\PYG{p}{.}\PYG{n}{size}\PYG{p}{()}\PYG{+w}{ }\PYG{o}{\PYGZgt{}}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{)}
+\PYG{+w}{      }\PYG{o}{++}\PYG{n}{translation}\PYG{p}{;}
+\PYG{+w}{    }\PYG{n}{currentNode}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{translation}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{second}\PYG{p}{;}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{n}{currentNode}\PYG{o}{\PYGZhy{}\PYGZgt{}}\PYG{n}{suffixStartPos}\PYG{p}{.}\PYG{n}{value}\PYG{p}{();}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{c+cp}{\PYGZsh{}include}\PYG{+w}{ }\PYG{c+cpf}{\PYGZlt{}iostream\PYGZgt{}}
+
+
+\PYG{k+kt}{int}\PYG{+w}{ }\PYG{n}{main}\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{ios}\PYG{o}{::}\PYG{n}{sync\PYGZus{}with\PYGZus{}stdio}\PYG{p}{(}\PYG{n+nb}{false}\PYG{p}{);}
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cin}\PYG{p}{.}\PYG{n}{tie}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{);}
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{p}{.}\PYG{n}{tie}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{);}
+
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{string}\PYG{+w}{ }\PYG{n}{s}\PYG{p}{;}
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{getline}\PYG{p}{(}\PYG{n}{std}\PYG{o}{::}\PYG{n}{cin}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{s}\PYG{p}{);}
+
+\PYG{+w}{  }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{sSize}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{s}\PYG{p}{.}\PYG{n}{size}\PYG{p}{();}
+\PYG{+w}{  }\PYG{n}{s}\PYG{+w}{ }\PYG{o}{+=}\PYG{+w}{ }\PYG{n}{s}\PYG{p}{;}
+\PYG{+w}{  }\PYG{n}{s}\PYG{+w}{ }\PYG{o}{+=}\PYG{+w}{ }\PYG{l+s+sc}{\PYGZsq{}\PYGZdl{}\PYGZsq{}}\PYG{p}{;}
+
+\PYG{+w}{  }\PYG{n}{SuffixTrie}\PYG{+w}{ }\PYG{n+nf}{trie}\PYG{p}{(}\PYG{n}{s}\PYG{p}{);}
+
+\PYG{+w}{  }\PYG{k+kt}{size\PYGZus{}t}\PYG{+w}{ }\PYG{n}{slicePos}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{trie}\PYG{p}{.}\PYG{n}{findMinSlice}\PYG{p}{(}\PYG{n}{sSize}\PYG{p}{);}
+
+\PYG{+w}{  }\PYG{n}{std}\PYG{o}{::}\PYG{n}{cout}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{s}\PYG{p}{.}\PYG{n}{substr}\PYG{p}{(}\PYG{n}{slicePos}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{sSize}\PYG{p}{)}\PYG{+w}{ }\PYG{o}{\PYGZlt{}\PYGZlt{}}\PYG{+w}{ }\PYG{n}{std}\PYG{o}{::}\PYG{n}{endl}\PYG{p}{;}
+
+\PYG{+w}{  }\PYG{k}{return}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\end{Verbatim}

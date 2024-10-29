@@ -1,9 +1,13 @@
+#include <cstdlib>
 #include <iostream>
+#include <memory>
+#include <optional>
 #include <vector>
 
 #include "SuffixTrie.hpp"
 
-SuffixTrie::SuffixTrie(const std::string &text) : text_(text) {
+SuffixTrie::SuffixTrie(const std::string &text)
+    : text_(text), sentinel(text[text.size() - 1]) {
   root_ = new Node{.slice = {0, std::make_shared<size_t>(0)}};
   createTrie();
 }
@@ -26,100 +30,136 @@ bool SuffixTrie::Node::canGoTo(const char &c) const {
   return translations.find(c) != translations.end();
 }
 
-std::pair<SuffixTrie::Node *, SuffixTrie::Node *>
-SuffixTrie::splitArc(std::pair<Node *, size_t> position, size_t i) {
-  auto &[node, shift] = position;
-
-  if (node == root_) {
-    Node *newNode =
-        (root_->translations[text_[i]] = new Node{.slice = {leafs_, endPos_},
-                                                  .parent = root_,
-                                                  .suffixStartPos = leafs_});
-    ++leafs_;
-    return {root_, newNode};
-  }
-
-  Node *oldNode = nullptr, *newNode = nullptr;
-  if (!node->canGoTo(text_[node->slice.first + shift]))
-    oldNode = (node->translations[text_[node->slice.first + shift]] = new Node{
-                   .slice = {node->slice.first + shift, node->slice.second},
-                   .parent = node,
-                   .suffixStartPos = node->suffixStartPos});
-
-  if (!node->canGoTo(text_[i]))
-    newNode =
-        (node->translations[text_[i]] = new Node{
-             .slice = {i, endPos_}, .parent = node, .suffixStartPos = leafs_});
-
-  node->slice.second = std::make_shared<size_t>(node->slice.first + shift);
-  node->suffixStartPos = std::nullopt;
-  ++leafs_;
-
-  return {oldNode, newNode};
+size_t SuffixTrie::Node::getSliceSize() const {
+  return *slice.second - slice.first;
 }
 
-std::pair<SuffixTrie::Node *, size_t>
-SuffixTrie::runBack(std::pair<Node *, size_t> position, size_t i) {
-  auto &[node, _] = position;
+SuffixTrie::Node *SuffixTrie::splitArc(SuffixTrie::ActivePoint position,
+                                       size_t i) {
+  Node *newNode = new Node{
+      .slice = {position.node()->slice.first,
+                std::make_shared<size_t>(position.node()->slice.first +
+                                         position.shift())},
+      .translations = {{text_[position.node()->slice.first + position.shift()],
+                        position.node()}},
+      .parent = position.node()->parent,
+      .suffixStartPos = std::nullopt};
+  position.node()->parent = newNode;
+  position.node()->slice.first = position.node()->slice.first + position.shift();
+  newNode->parent->translations[text_[newNode->slice.first]] = newNode;
+
+  splitNode(newNode, i);
+
+  return newNode;
+}
+
+void SuffixTrie::splitNode(SuffixTrie::Node *node, size_t i) {
+  node->translations[text_[i]] = new Node{
+      .slice = {i, endPos_}, .parent = node, .suffixStartPos = leafs_++};
+}
+
+SuffixTrie::ActivePoint SuffixTrie::runBack(SuffixTrie::ActivePoint position,
+                                            size_t i) {
+  if (position.node() == root_) {
+    std::cerr << "ERROR: the try to run back from root_ has detected"
+              << std::endl;
+    exit(1);
+  }
+  if(position.node()->link != nullptr) {
+    return {position.node()->link, position.node()->link->getSliceSize()};
+  }
+
   size_t totalShift = 0;
-  while (node->link == nullptr && node != root_) {
-    totalShift += *node->slice.second - node->slice.first;
-    node = node->parent;
+  while (position.node() != root_ && position.node()->link == nullptr) {
+    totalShift += position.node()->getSliceSize();
+    position.node() = position.node()->parent;
+  }
+  if (position.node() == root_ && totalShift == 0) {
+    std::cerr << "ERROR: run back to root_ but total shift is 0" << std::endl;
+    exit(1);
+  }
+  if (position.node() == root_)
+    --totalShift;
+  else
+    position.node() = position.node()->link;
+
+  if (totalShift > 0) {
+    position.node() = position.node()->translations[text_[i - totalShift]];
+    while (totalShift > position.node()->getSliceSize()) {
+      totalShift -= position.node()->getSliceSize();
+      position.node() = position.node()->translations[text_[i - totalShift]];
+    }
   }
 
-  if (node->link != nullptr)
-    node = node->link->translations[text_[i - totalShift]];
-  else if (node == root_)
-    --totalShift; // As we roll back for all suffix we should go forward by
-                  // suffix without 1 letter
-
-  while (totalShift > *node->slice.second - node->slice.first) {
-    totalShift -= *node->slice.second - node->slice.first;
-    node = node->translations[text_[i - totalShift]];
-  }
-
-  size_t shift = 0;
-  while (totalShift > shift &&
-         text_[i - totalShift + shift] == text_[node->slice.first + shift])
-    shift++;
-
-  return {node, shift};
+  return {position.node(), totalShift};
 }
 
-std::pair<SuffixTrie::Node *, size_t>
-SuffixTrie::splitCascade(std::pair<Node *, size_t> position, size_t i) {
+SuffixTrie::ActivePoint
+SuffixTrie::splitCascade(SuffixTrie::ActivePoint position, size_t i) {
+  if (position.shift() > position.node()->getSliceSize()) {
+    std::cerr << "ERROR: Shift bigger than slice size"
+              << std::endl; // For testing purposes
+    exit(1);
+  }
   Node *lastSplitted = nullptr;
-  while (position.first != root_) {
-    auto [node, shift] = position;
-    splitArc(position, i);
+  while (
+      position.node() != root_ &&
+      ((position.shift() == position.node()->getSliceSize() &&
+        !position.node()->canGoTo(text_[i])) ||
+       (position.shift() < position.node()->getSliceSize() &&
+        text_[position.node()->slice.first + position.shift()] != text_[i]))) {
 
-    if (lastSplitted != nullptr)
-      lastSplitted->link = node;
-    lastSplitted = node;
+    if (position.shift() ==
+        position.node()->getSliceSize()) { // We at node, not at arc. So we need
+                                           // add new translation to node
+      splitNode(position.node(), i);
+      if (lastSplitted != nullptr)
+        lastSplitted->link = position.node();
+      lastSplitted = position.node();
+    } else { // We at arc, so we split arc.
+      position.first = splitArc(position, i);
+      position.second = position.node()->getSliceSize();
 
-    position.second =
-        *position.first->slice.second -
-        position.first->slice.first; // Point at last letter on an arc such as
-                                     // we split the arc by this letter
+      if (lastSplitted != nullptr)
+        lastSplitted->link = position.node();
+      lastSplitted = position.node();
+    }
     position = runBack(position, i);
   }
-  splitArc({root_, 0}, i);
-  if (lastSplitted != nullptr)
-    lastSplitted->link = root_;
 
-  return {root_, 0};
+  if (position.node() == root_ && !position.node()->canGoTo(text_[i]))
+    splitNode(position.node(), i);
+  else if (position.shift() == position.node()->getSliceSize() &&
+           position.node()->canGoTo(text_[i])) {
+    position.first = position.node()->translations[text_[i]];
+    position.second = 1;
+  } else if (position.shift() < position.node()->getSliceSize() &&
+        text_[position.node()->slice.first + position.shift()] != text_[i]) {
+    ++position.shift();
+  } else {
+    std::cerr << "ERROR: undefined case in splitCascade" << std::endl;
+    exit(1);
+  }
+
+  return position;
 }
 
 void SuffixTrie::printTree(SuffixTrie::Node *node, size_t depth) {
-  std::cout << "Slice: {" << node->slice.first << " ; " << *node->slice.second
-            << "}";
+  std::cout << text_.substr(node->slice.first,
+                            *node->slice.second - node->slice.first);
   if (node->link == nullptr)
     std::cout << "; link: none" << std::endl;
   else
-    std::cout << "; link: {" << node->link->slice.first << " ; "
-              << *node->link->slice.second << "}" << std::endl;
+    std::cout << "; link: "
+              << text_.substr(node->link->slice.first,
+                              *node->link->slice.second -
+                                  node->link->slice.first)
+              << std::endl;
 
   for (auto [letter, child] : node->translations) {
+    if (letter != text_[child->slice.first])
+      std::cout << "ERROR: translation letter don't correspond real slice"
+                << std::endl;
     for (size_t i = 0; i < depth; ++i)
       std::cout << "  ";
     std::cout << letter << " : ";
@@ -128,23 +168,19 @@ void SuffixTrie::printTree(SuffixTrie::Node *node, size_t depth) {
 }
 
 void SuffixTrie::createTrie() {
-  std::pair<Node *, size_t> activePoint = {root_, 0};
+  ActivePoint ap = {root_, 0};
   for (size_t i = 0; i < text_.size(); ++i) {
     ++(*endPos_);
-    auto &[node, shift] = activePoint;
-
-    if (shift < *node->slice.second - node->slice.first) {
-      if (text_[node->slice.first + shift] == text_[i]) {
-        ++shift;
-        continue;
-      } else {
-        activePoint = splitCascade(activePoint, i);
-      }
-    } else {
-      if (node->canGoTo(text_[i]))
-        activePoint = {node->translations[text_[i]], 1};
+    if (ap.shift() < ap.node()->getSliceSize()) {
+      if (text_[ap.node()->slice.first + ap.shift()] == text_[i])
+        ++ap.shift();
       else
-        activePoint = splitCascade(activePoint, i);
+        ap = splitCascade(ap, i);
+    } else {
+      if (ap.node()->canGoTo(text_[i]))
+        ap = {ap.node()->translations[text_[i]], 1};
+      else
+        ap = splitCascade(ap, i);
     }
   }
 }
@@ -169,22 +205,42 @@ std::vector<size_t> SuffixTrie::find(const std::string &pattern) const {
 
   std::vector<size_t> result;
   std::vector<Node *> endNodes = findEndNodes(activePoint.first);
-  for(auto node : endNodes)
+  for (auto node : endNodes)
     result.push_back(node->suffixStartPos.value());
 
   return result;
 }
 
-std::vector<SuffixTrie::Node *> SuffixTrie::findEndNodes(SuffixTrie::Node * node) const {
-  if(node->suffixStartPos.has_value())
+std::vector<SuffixTrie::Node *>
+SuffixTrie::findEndNodes(SuffixTrie::Node *node) const {
+  if (node->suffixStartPos.has_value())
     return {node};
 
   std::vector<Node *> result;
-  for(auto & [_, child] : node->translations) {
+  for (auto &[_, child] : node->translations) {
     std::vector<Node *> childEndNodes = findEndNodes(child);
-    for(auto endNode : childEndNodes)
+    for (auto endNode : childEndNodes)
       result.push_back(endNode);
   }
 
   return result;
+}
+size_t SuffixTrie::findMinSlice(size_t sliceSize) {
+  Node *currentNode = root_;
+  while (sliceSize > *currentNode->slice.second - currentNode->slice.first) {
+    sliceSize -= *currentNode->slice.second - currentNode->slice.first;
+    auto translation = std::begin(currentNode->translations);
+    if (translation->first == sentinel)
+      ++translation;
+    currentNode = translation->second;
+  }
+
+  while (currentNode->translations.size() > 0) {
+    auto translation = std::begin(currentNode->translations);
+    if (translation->first == sentinel && currentNode->translations.size() > 1)
+      ++translation;
+    currentNode = translation->second;
+  }
+
+  return currentNode->suffixStartPos.value();
 }
