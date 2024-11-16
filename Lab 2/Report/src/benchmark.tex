@@ -1,0 +1,13 @@
+\section{Тест производительности}
+В сравнении с реализацией красно-черного дерева из билиотеки STL АВЛ-дерево показывает вдвое худший результат, тем не менее это означает, что АВЛ-дерево имеет сопоставимую с красно-черным деревом асимптотику, т.е. $O(log\; N)$
+\begin{verbatim*}
+raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis/out/Debug$ ./AVLTest 500Cmds.txt 
+AVLTime: 2434us
+std::map(RBTree) time: 1336us
+raison@WIN-4SUTO50B1V5:~/Learn/Discrete-Analysis/out/Debug$ ./AVLTest 1000Cmds.txt 
+AVLTime: 5179us
+std::map(RBTree) time: 2761us
+\end{verbatim*}
+
+\pagebreak
+

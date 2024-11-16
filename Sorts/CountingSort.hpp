@@ -2,29 +2,31 @@
 #define COUNTING_SORT_HPP_
 
 #include <vector>
-#include <concepts>
+#include <memory>
 
-template <typename T>
-concept IsInteger = std::same_as<T, int> || std::same_as<T, long> || std::same_as<T, long long>;
+struct Item {
+    unsigned int key;
+    unsigned long long value;
+};
 
 namespace sorts {
 
-template <IsInteger TElement>
 class CountingSort {
 private:
-    TElement minElement_;
-    TElement maxElement_;
+    unsigned int minElement_;
+    unsigned int maxElement_;
 
-    void checkForMinMaxElements(std::vector<TElement> & values) {
-        minElement_ = values[0];
-        maxElement_ = values[0];
-        for (TElement & value : values) {
-            if (value < minElement_) {
-                minElement_ = value;
+    void checkForMinMaxElements(std::vector<Item> & items) {
+        minElement_ = items[0].key;
+        maxElement_ = items[0].key;
+        for (auto & item : items) {
+            unsigned int currentKey = item.key;
+            if (currentKey < minElement_) {
+                minElement_ = currentKey;
             }
 
-            if (value > maxElement_) {
-                maxElement_ = value;
+            if (currentKey > maxElement_) {
+                maxElement_ = currentKey;
             }
         }
     }
@@ -32,27 +34,27 @@ private:
 public:
     CountingSort() = default;
 
-    void sort(std::vector<TElement> & values) {
-        if (values.size() == 0) {
+    void sort(std::vector<Item> & items) {
+        if (items.size() == 0) {
             return;
         }
 
-        checkForMinMaxElements(values);
-        std::vector<TElement> elementsCounter(maxElement_ - minElement_ + 1);
+        checkForMinMaxElements(items);
+        std::vector<Item> tempItems(items);
+        std::vector<unsigned int> elementsCounter(maxElement_ - minElement_ + 1);
 
-        for (TElement & value : values) {
-            elementsCounter[value - minElement_]++;
+        for (auto & item : items) {
+            elementsCounter[item.key - minElement_]++;
         }
 
-        TElement lastInserted = 0;
-        for (int num = 0; num < elementsCounter.size(); ++num) {
-            if (elementsCounter[num] == 0) {
-                continue;
-            }
+        for (int i = 1; i < elementsCounter.size(); ++i) {
+            elementsCounter[i] += elementsCounter[i - 1];
+        }
 
-            for (int i = 0; i < elementsCounter[num]; ++i) {
-                values[lastInserted++] = num + minElement_;
-            }
+
+        for (int i = tempItems.size() - 1; i >= 0; --i) {
+            long index = --elementsCounter[tempItems[i].key - minElement_];
+            items[index] = tempItems[i];
         }
     }
 };

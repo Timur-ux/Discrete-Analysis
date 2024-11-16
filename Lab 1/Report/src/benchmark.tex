@@ -1,0 +1,33 @@
+\section{Тест производительности}
+В сравнении с стабильной сортировкой из стандартной библиотеки STL сортировка подсчётом показала много худший результат на экстра малых объёмах данный(порядка 10 элементов), в силу затрат на дополнительные массивы.
+
+На больших объёмах данных (порядка 1 000 000 элементов) сортировка подсчётом показала кратно лучший результат, что доказывает её линейную асимптотику.
+
+\begin{verbatim*}
+raison@WIN-4SUTO50B1V5:/mnt/c/Users/User/Desktop/Learning/2Course/
+Discrete-Analysis/Lab 1$ ./benchmark < ./tests/01.t
+Count of lines is 0
+Counting sort time: 0us
+STL stable sort time: 0us
+
+raison@WIN-4SUTO50B1V5:/mnt/c/Users/User/Desktop/Learning/2Course/
+Discrete-Analysis/Lab 1$ ./benchmark < ./tests/02.t
+Count of lines is 1
+Counting sort time: 6us
+STL stable sort time: 2us
+
+raison@WIN-4SUTO50B1V5:/mnt/c/Users/User/Desktop/Learning/2Course/
+Discrete-Analysis/Lab 1$ ./benchmark < ./tests/03.t
+Count of lines is 10
+Counting sort time: 1097us
+STL stable sort time: 6us
+
+raison@WIN-4SUTO50B1V5:/mnt/c/Users/User/Desktop/Learning/2Course/
+Discrete-Analysis/Lab 1$ ./benchmark < ./tests/08.t
+Count of lines is 1000000
+Counting sort time: 112591us
+STL stable sort time: 721206us
+\end{verbatim*}
+
+\pagebreak
+

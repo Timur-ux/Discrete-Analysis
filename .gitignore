@@ -1,5 +1,9 @@
+*.pdf
+*.aux
+*.dvi
 # Prerequisites
 *.d
+
 
 # Compiled Object files
 *.slo
@@ -34,3 +38,8 @@
 /build
 /.vscode
 /CMakeFiles
+/out
+/.cache
+*.t
+*.a
+*.log
