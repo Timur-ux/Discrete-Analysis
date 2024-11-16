@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <vector>
-#include "Sorts/CountingSort.hpp"
+#include "CountingSort.hpp"
 
 int main() {
     std::ios::sync_with_stdio(false);

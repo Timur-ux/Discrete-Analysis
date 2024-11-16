@@ -12,11 +12,11 @@ add_compile_options(-g)
 
 add_executable(main main.cpp)
 include_directories(
-  PUBLIC Sorts
-  PUBLIC SearchingTree
-  PUBLIC Tries
-  PUBLIC Utils
-  PUBLIC Strings
+  PUBLIC "./Sorts"
+  PUBLIC "./SearchingTree"
+  PUBLIC "./Tries"
+  PUBLIC "./Utils"
+  PUBLIC "./Strings"
 )
 
 file(GLOB_RECURSE TEST_SOURCES LIST_DIRECTORIES FALSE tests/*.cpp)
@@ -36,3 +36,11 @@ target_link_libraries(main_test
   strings_lib)
 target_link_libraries(main strings_lib)
 
+add_subdirectory("Lab 1/")
+add_subdirectory("Lab 2/")
+add_subdirectory("Lab 3/")
+add_subdirectory("Lab 4/")
+add_subdirectory("Lab 5/")
+add_subdirectory("Lab 7/")
+add_subdirectory("Lab 8/")
+add_subdirectory("CP/")
