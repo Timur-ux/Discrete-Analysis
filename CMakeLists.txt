@@ -15,7 +15,7 @@ include_directories(
   PUBLIC "./Sorts"
   PUBLIC "./SearchingTree"
   PUBLIC "./Tries"
-  PUBLIC "./Utils"
+  PUBLIC "./utils"
   PUBLIC "./Strings"
 )
 
