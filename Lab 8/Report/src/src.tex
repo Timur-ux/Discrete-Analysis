@@ -1,0 +1,62 @@
+\section{Описание}
+Т.к. каждый следующий номинал делится на предыдущий, то для нахождения оптимального решения можно воспользоваться жадным алгоритмом. Для начала смотрим на максимально возможное количество монет максимального номинала, потом следующего по убыванию и т.д.
+
+В общем случае это решение не будет работать. Например, монеты: 1, 3, 4 и сумма 6. Тогда по жадному алгоритму мы получим 4, 1, 1, а оптимальным решением будет 3, 3.
+
+Для нахождения оптимального решения в общем случае можно воспользоваться динамическим программированием. Пусть cost(C) -- минимальное количество монет, которым можно разменять сумму равную C. Номиналы: $c_1, c_2, \dots, c_n$. Тогда справедливы следующие утверждения:
+\begin{enumerate}
+  \item $cost(c_i) = 1, i \in \{1, 2, \dots, n\}$ 
+  \item $cost(C) = \min_{i \in \{1, 2, \dots, n\}}\{cost(C - c_i)\} + 1$
+\end{enumerate}
+
+На основании данных соотношений можно построить динамическое решение данной задачи для монет произвольных номиналов.
+
+\pagebreak
+
+\section{Исходный код}
+
+\begin{minted}{c++}
+#include <iostream>
+
+using ll = long long ;
+using ull = unsigned long long ;
+int main() {
+  ull N, p, M;
+
+  std::cin >> N >> p >> M;
+  
+  ull *values = new ull[N];
+
+  for(size_t i = 0, currentPi = 1; i < N; ++i) {
+    values[i] = currentPi;
+    currentPi *= p;
+  }
+
+  ull * counts = new ull[N] {0};
+
+  for(size_t i = N - 1; i > 0; --i) {
+    counts[i] = M / values[i];
+    M -= counts[i] * values[i];
+  }
+
+  counts[0] = M;
+
+  for(size_t i = 0; i < N; ++i)
+    std::cout << counts[i] << '\n';
+
+  delete [] values;
+  delete [] counts;
+  return 0;
+}
+\end{minted}
+
+\section{Консоль}
+\begin{alltt}
+raison@raison-Lenovo:~/git/Discrete-Analysis/Lab 8/Report$ ../../build/Lab\ 8/Lab8_main 
+3 5
+71
+1
+4
+2
+\end{alltt}
+\pagebreak
