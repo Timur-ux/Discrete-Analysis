@@ -150,6 +150,12 @@
   "output": "Lab 8/CMakeFiles/Lab8_main.dir/main.cpp.o"
 },
 {
+  "directory": "/home/raison/git/Discrete-Analysis/build/Lab 9",
+  "command": "/usr/bin/c++  -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -std=gnu++20 -g -o CMakeFiles/Lab9_main.dir/main.cpp.o -c \"/home/raison/git/Discrete-Analysis/Lab 9/main.cpp\"",
+  "file": "/home/raison/git/Discrete-Analysis/Lab 9/main.cpp",
+  "output": "Lab 9/CMakeFiles/Lab9_main.dir/main.cpp.o"
+},
+{
   "directory": "/home/raison/git/Discrete-Analysis/build/CP",
   "command": "/usr/bin/c++  -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -std=gnu++20 -g -o CMakeFiles/CP_main.dir/main.cpp.o -c /home/raison/git/Discrete-Analysis/CP/main.cpp",
   "file": "/home/raison/git/Discrete-Analysis/CP/main.cpp",
