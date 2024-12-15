@@ -1,6 +1,9 @@
 #include "../include/utils.hpp"
 #include "flags.hpp"
 #include <stdexcept>
+#include <vector>
+#include "Hashberg.hpp"
+#include <iostream>
 
 
 void parseFlags(std::string & s) {
@@ -31,4 +34,21 @@ void parseFlags(std::string & s) {
         throw std::invalid_argument("Invalid flags line near" + std::to_string(i) +" index: " + s);
     }
   }
+}
+
+std::vector<int> toInt(const std::string &s) {
+  std::vector<int> res;
+  res.reserve(s.size());
+  for(auto& c : s) {
+    res.push_back(c);
+  }
+  
+  return res;
+}
+
+size_t levinshtain(const std::string &s1, const std::string&s2) {
+  std::vector<int> lcp = H2_prim(toInt(s1), toInt(s2));
+  int d = lcp[lcp.size() - 1];
+
+  return s1.size() + s2.size() - 2 * d;
 }
