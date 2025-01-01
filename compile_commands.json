@@ -150,9 +150,39 @@
   "output": "Lab 8/CMakeFiles/Lab8_main.dir/main.cpp.o"
 },
 {
+  "directory": "/home/raison/git/Discrete-Analysis/build/Lab 9",
+  "command": "/usr/bin/c++  -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -std=gnu++20 -g -o CMakeFiles/Lab9_main.dir/main.cpp.o -c \"/home/raison/git/Discrete-Analysis/Lab 9/main.cpp\"",
+  "file": "/home/raison/git/Discrete-Analysis/Lab 9/main.cpp",
+  "output": "Lab 9/CMakeFiles/Lab9_main.dir/main.cpp.o"
+},
+{
+  "directory": "/home/raison/git/Discrete-Analysis/build/Lab 9",
+  "command": "/usr/bin/c++  -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -std=gnu++20 -g -o CMakeFiles/Lab9_main2.dir/main2.cpp.o -c \"/home/raison/git/Discrete-Analysis/Lab 9/main2.cpp\"",
+  "file": "/home/raison/git/Discrete-Analysis/Lab 9/main2.cpp",
+  "output": "Lab 9/CMakeFiles/Lab9_main2.dir/main2.cpp.o"
+},
+{
   "directory": "/home/raison/git/Discrete-Analysis/build/CP",
   "command": "/usr/bin/c++  -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -std=gnu++20 -g -o CMakeFiles/CP_main.dir/main.cpp.o -c /home/raison/git/Discrete-Analysis/CP/main.cpp",
   "file": "/home/raison/git/Discrete-Analysis/CP/main.cpp",
   "output": "CP/CMakeFiles/CP_main.dir/main.cpp.o"
+},
+{
+  "directory": "/home/raison/git/Discrete-Analysis/build/CP",
+  "command": "/usr/bin/c++ -DDEBUG -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -I/home/raison/git/Discrete-Analysis/CP/./include -std=gnu++20 -g -o CMakeFiles/CP_proj_lib.dir/src/FileReader.cpp.o -c /home/raison/git/Discrete-Analysis/CP/src/FileReader.cpp",
+  "file": "/home/raison/git/Discrete-Analysis/CP/src/FileReader.cpp",
+  "output": "CP/CMakeFiles/CP_proj_lib.dir/src/FileReader.cpp.o"
+},
+{
+  "directory": "/home/raison/git/Discrete-Analysis/build/CP",
+  "command": "/usr/bin/c++ -DDEBUG -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -I/home/raison/git/Discrete-Analysis/CP/./include -std=gnu++20 -g -o CMakeFiles/CP_proj_lib.dir/src/utils.cpp.o -c /home/raison/git/Discrete-Analysis/CP/src/utils.cpp",
+  "file": "/home/raison/git/Discrete-Analysis/CP/src/utils.cpp",
+  "output": "CP/CMakeFiles/CP_proj_lib.dir/src/utils.cpp.o"
+},
+{
+  "directory": "/home/raison/git/Discrete-Analysis/build/CP",
+  "command": "/usr/bin/c++ -DDEBUG -I/home/raison/git/Discrete-Analysis/PUBLIC -I/home/raison/git/Discrete-Analysis/./Sorts -I/home/raison/git/Discrete-Analysis/./SearchingTree -I/home/raison/git/Discrete-Analysis/./Tries -I/home/raison/git/Discrete-Analysis/./utils -I/home/raison/git/Discrete-Analysis/./Strings -I/home/raison/git/Discrete-Analysis/CP/./include -std=gnu++20 -g -o CMakeFiles/CP_main_proj.dir/main_proj.cpp.o -c /home/raison/git/Discrete-Analysis/CP/main_proj.cpp",
+  "file": "/home/raison/git/Discrete-Analysis/CP/main_proj.cpp",
+  "output": "CP/CMakeFiles/CP_main_proj.dir/main_proj.cpp.o"
 }
 ]
