@@ -1,3 +1,7 @@
-sov     cvjb
-cvjbkd   dkf
-some
+{
+  "venvPath": venvPath
+  some,
+  indential,
+  part,
+  "venv": venv,
+}

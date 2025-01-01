@@ -1,9 +1,7 @@
 #include "FileReader.hpp"
 #include "./include/utils.hpp"
-#include "flags.hpp"
 #include <iostream>
 #include <stdexcept>
-#include <tuple>
 
 int main(int argc, char * argw[]) {
   if(argc < 3) {
@@ -18,8 +16,10 @@ int main(int argc, char * argw[]) {
   
 
 
+  std::cout << argw[argc-2] << ' ' << argw[argc-1]<< std::endl;
   FileReader file1(argw[argc-2]);
   FileReader file2(argw[argc-1]);
+  std::cout << file1.size() << ' ' << file2.size() << std::endl;
 
   for(size_t i = 0; i < file1.size(); ++i) {
     for(size_t j = 0; j < file2.size(); ++j) {
