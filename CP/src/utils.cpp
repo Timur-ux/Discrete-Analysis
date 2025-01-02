@@ -1,5 +1,6 @@
 #include "../include/utils.hpp"
 #include "flags.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <vector>
 #include "Hashberg.hpp"
@@ -47,8 +48,11 @@ std::vector<int> toInt(const std::string &s) {
 }
 
 size_t levinshtain(const std::string &s1, const std::string&s2) {
+  if(s1.size() == 0 || s2.size() == 0) {
+    return std::max(s1.size(), s2.size());
+  }
+  
   std::vector<int> lcp = H2_prim(toInt(s1), toInt(s2));
   int d = lcp[lcp.size() - 1];
-
   return s1.size() + s2.size() - 2 * d;
 }

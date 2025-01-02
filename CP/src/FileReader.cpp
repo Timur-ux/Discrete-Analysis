@@ -61,10 +61,14 @@ std::string processIgnoreSpaceChange(const std::string &s) {
   return res;
 }
 
+bool isSpace(char c) {
+  return (c == ' ') || (c == '\n') || (c == '\t');
+}
+
 std::string processIgnoreAllSpace(const std::string &s) {
   std::string res = "";
   for (auto &c : s) {
-    if (isspace(c)) {
+    if (isSpace(c)) {
       continue;
     }
     res.push_back(c);

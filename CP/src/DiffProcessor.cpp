@@ -1,32 +1,46 @@
-#include "../include/utils.hpp"
 #include "DiffProcesser.hpp"
-#include "FileChange.hpp"
 #include "FileReader.hpp"
+#include "../include/utils.hpp"
 #include <cstdio>
+#include <iostream>
+#include <limits.h>
 
-enum class ActionType { none, pass, add, remove };
+size_t diffDP(FileReader &buffer1, FileReader &buffer2) {
+  std::vector<std::vector<size_t>> levis(buffer1.size()+1, std::vector<size_t>(buffer2.size() + 1, 100));
+  levis[0][0] = 0;
 
-struct ActionData {
-  ActionType type;
-  size_t i;
-  size_t leviValue;
-};
-
-void diff(FileReader &buffer1, FileReader &buffer2, size_t i1, size_t i2,
-          std::list<ActionData> &current, std::list<ActionData> &optimal) {
-  if (buffer1[i1] == buffer2[i2]) {
-    current.push_back({ActionType::pass, i1, (--current.end())->leviValue});
-    diff(buffer1, buffer2, i1+1, i2+1, current, optimal);
+  for (size_t i = 0; i < buffer1.size(); ++i) {
+    levis[i + 1][0] = buffer1[i].size();
   }
-}
+  for(size_t j = 0; j < buffer2.size(); ++j) {
+    levis[0][j+1] = buffer2[j].size();
+  }
 
-FileChanges compress(std::list<ActionData> data);
+  for (size_t i = 0; i < buffer1.size(); ++i) {
+    for (size_t j = 0; j < buffer2.size(); ++j) {
+      levis[i + 1][j + 1] = levis[i][j] ;
+      size_t addLineDiff = levis[i][j+1];
+      size_t deleteLineDiff = levis[i+1][j];
+      
+      if(addLineDiff < levis[i+1][j+1]) {
+        levis[i+1][j+1] = addLineDiff;
+      }
+      if(deleteLineDiff < levis[i+1][j+1]) {
+        levis[i+1][j+1] = deleteLineDiff;
+      }
 
-FileChanges diffProcessor(FileReader &buffer1, FileReader &buffer2) {
-  std::list<ActionData> current, optimal;
-  current.push_back({ActionType::none, 0, 0});
+      levis[i+1][j+1] += levinshtain(buffer1[i], buffer2[j]);
+    }
+  }
 
-  diff(buffer1, buffer2, 0, 0, current, optimal);
-
-  return compress(optimal);
+  std::cout << "" << std::endl;
+  for(size_t i = 0; i <= buffer1.size(); ++i) {
+    for(size_t j = 0; j <= buffer2.size(); ++j) {
+      std::cout << levis[i][j] << '\t';
+    }
+    std::cout << "" << std::endl;
+  }
+  
+  
+  return levis[buffer1.size()][buffer2.size()];
 }
