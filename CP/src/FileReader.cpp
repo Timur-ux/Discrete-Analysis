@@ -5,10 +5,6 @@
 #include <iterator>
 #include <string>
 
-#ifdef DEBUG
-#include <iostream>
-#endif // !DEBUG
-
 void processIgnoreCase(std::string &s) {
   std::transform(std::begin(s), std::end(s), std::begin(s),
                  [](char c) { return tolower(c); });
@@ -110,12 +106,7 @@ FileReader::FileReader(std::string fileName) {
 
     buffer.push_back(line);
   }
-
-#ifdef DEBUG
-  for (auto &line : buffer) {
-    std::cout << line << "|\n";
-  }
-#endif // !DEBUG
 }
+
 std::string &FileReader::operator[](size_t i) { return buffer.at(i); }
 size_t FileReader::size() { return buffer.size(); }

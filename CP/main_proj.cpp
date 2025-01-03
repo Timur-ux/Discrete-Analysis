@@ -20,9 +20,11 @@ int main(int argc, char * argw[]) {
   std::cout << argw[argc-2] << ' ' << argw[argc-1]<< std::endl;
   FileReader file1(argw[argc-2]);
   FileReader file2(argw[argc-1]);
-
-  std::cout << "Min dist between file1 and file2: " << diffDP(file1, file2) << std::endl;
-
+  auto actionPacks = processDiff(file1, file2);
+  for(auto& pack : actionPacks) {
+    printPack(std::cout, pack, file1, file2);
+  }
+  
   return 0;
 }
 

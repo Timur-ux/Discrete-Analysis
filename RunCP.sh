@@ -1,4 +1,4 @@
-if [[ $1 -eq build ]]; then
+if [ "$1" == "build" ]; then
   echo "$1"
   make
 fi
