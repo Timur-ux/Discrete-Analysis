@@ -5,10 +5,6 @@
 #include <iterator>
 #include <string>
 
-bool isSpace(char c) {
-  return (c == ' ') || (c == '\n') || (c == '\t');
-}
-
 void processIgnoreCase(std::string &s) {
   std::transform(std::begin(s), std::end(s), std::begin(s),
                  [](char c) { return tolower(c); });
@@ -37,7 +33,7 @@ std::string processIgnoreTrailingSpace(const std::string &s) {
     return "";
   std::string res = "";
   long long tail = s.size() - 1;
-  while (tail>=0 && isSpace(s[tail])) {
+  while (tail>=0 && isspace(s[tail])) {
     --tail;
   }
   for (size_t i = 0; i < tail; ++i) {
@@ -51,7 +47,7 @@ std::string processIgnoreSpaceChange(const std::string &s) {
   std::string res = "";
   char cPrev = '\0';
   for (auto &c : s) {
-    if (isSpace(c) && isSpace(cPrev)) {
+    if (isspace(c) && isspace(cPrev)) {
       cPrev = c;
       continue;
     }
@@ -59,6 +55,10 @@ std::string processIgnoreSpaceChange(const std::string &s) {
     cPrev = c;
   }
   return res;
+}
+
+bool isSpace(char c) {
+  return (c == ' ') || (c == '\n') || (c == '\t');
 }
 
 std::string processIgnoreAllSpace(const std::string &s) {
@@ -104,9 +104,6 @@ FileReader::FileReader(std::string fileName) {
         line = processIgnoreTrailingSpace(line);
     }
 
-    if(flags::ignore_all_space && line == "") {
-      continue;
-    }
     buffer.push_back(line);
   }
 }
