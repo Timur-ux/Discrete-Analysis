@@ -1,0 +1,7 @@
+{
+  "venvPath": venvPath
+  some,
+  indential,
+  part,
+  "venv": venv,
+}
